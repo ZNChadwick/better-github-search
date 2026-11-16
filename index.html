@@ -1,0 +1,3338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Better GitHub Search</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      margin: 0;
+      padding: 1.25rem;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1580px;
+      margin: 0 auto 14px auto;
+    }
+    .topbar h2 { margin: 0; font-size: 1.3rem; }
+    .layout {
+      display: grid;
+      grid-template-columns: 290px 1fr 230px;
+      gap: 16px;
+      max-width: 1580px;
+      margin: 0 auto;
+      align-items: start;
+    }
+    .layout.no-legend { grid-template-columns: 290px 1fr; }
+	.layout > aside:first-child { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
+    @media (max-width: 1050px) {
+      .layout, .layout.no-legend { grid-template-columns: 1fr; }
+    }
+    input, select, button {
+      background: #161b22;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      padding: 7px 11px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+    }
+    input:focus, select:focus { outline: none; border-color: #58a6ff; }
+    button {
+      background: #238636;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    button:hover { background: #2ea043; }
+    .btn-sec {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      font-weight: 500;
+    }
+    .btn-sec:hover { background: #30363d; border-color: #8b949e; }
+    .btn-sm { padding: 5px 10px; font-size: 0.82rem; }
+    .btn-xs { padding: 3px 8px; font-size: 0.76rem; }
+    .btn-danger:hover { background: #da3633; color: #fff; border-color: #da3633; }
+    .panel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 13px;
+      margin-bottom: 13px;
+    }
+    .label {
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #8b949e;
+      margin-bottom: 8px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .side-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      margin-bottom: 6px;
+      font-size: 0.83rem;
+    }
+    .side-item:hover { border-color: #30363d; }
+    .side-item-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .side-item-name:hover { color: #58a6ff; }
+    .badge-count {
+      background: #21262d;
+      color: #8b949e;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 0.72rem;
+    }
+    .chip-box {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      padding: 8px;
+      border-radius: 6px;
+      min-height: 44px;
+      cursor: text;
+    }
+    .chip-box input.main-in {
+      border: none;
+      background: transparent;
+      padding: 4px;
+      flex: 1;
+      min-width: 210px;
+    }
+    .q-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1f6feb33;
+      color: #79c0ff;
+      border: 1px solid #388bfd66;
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 0.84rem;
+      font-family: ui-monospace, monospace;
+    }
+    .q-chip.neg { background: #f8514926; color: #ffa198; border-color: #f8514966; }
+    .q-chip.or-grp { background: #8957e533; color: #d2a8ff; border-color: #a371f766; }
+    .q-chip .x { cursor: pointer; font-weight: bold; opacity: 0.75; padding: 0 2px; }
+    .chip-box { position: relative; user-select: none; }
+    .q-chip[draggable="true"] { cursor: grab; }
+    .q-chip.is-selected {
+      outline: 2px solid #58a6ff !important;
+      outline-offset: 1px;
+      box-shadow: 0 0 10px rgba(88, 166, 255, 0.45);
+    }
+    .q-chip.drop-target {
+      outline: 2px dashed #d2a8ff;
+      outline-offset: 2px;
+      background: #8957e544 !important;
+    }
+    .q-chip.drop-before { box-shadow: -4px 0 0 0 #58a6ff; }
+    .q-chip.drop-after { box-shadow: 4px 0 0 0 #58a6ff; }
+    .q-chip.is-op {
+      background: #8957e544;
+      color: #e2c5ff;
+      border-color: #a371f788;
+      font-weight: 700;
+      padding: 4px 9px;
+    }
+    .q-chip.is-op.is-and {
+      background: #1f6feb44;
+      color: #79c0ff;
+      border-color: #58a6ff88;
+    }
+    .q-chip.is-paren {
+      background: #21262d;
+      font-weight: 800;
+      padding: 4px 9px;
+    }
+    .q-chip.is-paren.unmatched {
+      border-color: #f85149 !important;
+      color: #ff7b72 !important;
+      background: #f8514926 !important;
+    }
+    .marquee-box {
+      position: absolute;
+      border: 1px dashed #58a6ff;
+      background: rgba(88, 166, 255, 0.14);
+      pointer-events: none;
+      z-index: 30;
+      border-radius: 4px;
+    }
+    .ac-dropdown {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      background: #161b22;
+      border: 1px solid #388bfd88;
+      border-radius: 8px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.85);
+      z-index: 120;
+      max-height: 230px;
+      overflow-y: auto;
+      display: none;
+    }
+    .ac-dropdown.open { display: block; }
+    .ac-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 11px;
+      cursor: pointer;
+      font-size: 0.83rem;
+      border-bottom: 1px solid #21262d;
+    }
+    .ac-item:last-child { border-bottom: none; }
+    .ac-item:hover, .ac-item.active { background: #1f6feb33; }
+    .ac-code { font-family: ui-monospace, monospace; color: #79c0ff; font-weight: 600; }
+    .ac-meta { font-size: 0.75rem; color: #8b949e; white-space: nowrap; }
+
+    .findings-bar {
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: #2386361a;
+      border: 1px solid #2ea04355;
+      border-radius: 6px;
+      display: none;
+    }
+    .findings-bar.active { display: block; }
+    .preset-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+    .preset-chip {
+      display: inline-flex;
+      align-items: center;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 14px;
+      font-size: 0.8rem;
+      overflow: hidden;
+    }
+    .preset-chip .add { padding: 3px 9px; cursor: pointer; color: #58a6ff; font-family: ui-monospace, monospace; }
+    .preset-chip .add:hover { background: #30363d; }
+    .preset-chip .del { padding: 3px 7px; cursor: pointer; color: #8b949e; border-left: 1px solid #30363d; }
+    .preset-chip .del:hover { background: #da3633; color: #fff; }
+    .warn-box { margin-top: 10px; padding: 8px 11px; border-radius: 6px; font-size: 0.82rem; }
+    .warn-box.ok { background: #1f6feb1a; border: 1px solid #388bfd44; color: #8b949e; }
+    .warn-box.warn { background: #d2992226; border: 1px solid #d2992288; color: #e3b341; }
+    .controls {
+      display: grid;
+      grid-template-columns: 185px 75px 1fr auto auto;
+      gap: 8px;
+      margin-top: 12px;
+      align-items: center;
+    }
+    @media (max-width: 750px) { .controls { grid-template-columns: 1fr 1fr; } }
+    .repo {
+      border: 1px solid #30363d;
+      background: #161b22;
+      padding: 14px;
+      border-radius: 8px;
+      margin-top: 10px;
+      position: relative;
+      transition: opacity 0.15s;
+    }
+    .repo.seen { opacity: 0.68; border-color: #21262d; }
+    .repo.seen:hover { opacity: 1; }
+    .repo-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+    .repo a.repo-link { color: #58a6ff; font-size: 1.06rem; font-weight: 700; text-decoration: none; }
+    .repo a.repo-link:hover { text-decoration: underline; }
+    .badge-upd {
+      background: #238636;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-left: 8px;
+      text-transform: uppercase;
+    }
+    .repo-actions { display: flex; gap: 6px; flex-wrap: wrap; position: relative; }
+    .meta { font-size: 0.8rem; color: #8b949e; margin-top: 8px; }
+    .tag {
+      display: inline-block;
+      background: #1f6feb26;
+      color: #58a6ff;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      margin: 5px 4px 0 0;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .tag:hover { border-color: #58a6ff; }
+    .tag-all { background: #23863644; color: #3fb950; border: 1px solid #2ea04388; }
+    .tag-most { background: #8957e544; color: #d2a8ff; border: 1px solid #a371f788; }
+    .tag-some { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+    .tag-query-match {
+      border: 1.5px solid #f0883e !important;
+      box-shadow: 0 0 0 1px #f0883e88, 0 0 8px #f0883e33;
+      font-weight: 700;
+    }
+    mark.q-hit {
+      background: #f0883e44;
+      color: #ffd8b5;
+      padding: 0 3px;
+      border-radius: 3px;
+      border-bottom: 1px solid #f0883e;
+    }
+    .inline-readme {
+      margin-top: 12px;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      background: #0d1117;
+      overflow: hidden;
+    }
+    .inline-readme-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      font-size: 0.8rem;
+      color: #8b949e;
+    }
+    .readme-body {
+      padding: 14px;
+      max-height: 360px;
+      overflow-y: auto;
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+    .readme-body img, .comp-readme img { max-width: 100%; height: auto; border-radius: 4px; }
+    .readme-body pre, .comp-readme pre { background: #161b22; padding: 10px; border-radius: 6px; overflow-x: auto; }
+    .readme-body a, .comp-readme a { color: #58a6ff; }
+    .readme-body table, .comp-readme table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+    .readme-body th, .readme-body td, .comp-readme th, .comp-readme td { border: 1px solid #30363d; padding: 6px 8px; }
+    .bm-popover {
+      position: absolute;
+      right: 0;
+      top: 32px;
+      width: 255px;
+      background: #161b22;
+      border: 1px solid #388bfd88;
+      border-radius: 8px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.75);
+      z-index: 60;
+      padding: 10px;
+    }
+    .bm-list-scroll { max-height: 185px; overflow-y: auto; margin: 8px 0; }
+    .bm-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 6px;
+      border-radius: 4px;
+      font-size: 0.83rem;
+      cursor: pointer;
+    }
+    .bm-row:hover { background: #21262d; }
+    .sidebar-right { position: sticky; top: 1rem; }
+    .sidebar-right.hidden { display: none; }
+    .legend-item { margin-bottom: 9px; padding-bottom: 7px; border-bottom: 1px solid #21262d; font-size: 0.79rem; }
+    .legend-item:last-child { border-bottom: none; margin-bottom: 0; }
+    .legend-code {
+      display: inline-block;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #79c0ff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      cursor: pointer;
+      margin-bottom: 3px;
+      word-break: break-all;
+    }
+    .legend-code:hover { border-color: #58a6ff; }
+    .legend-desc { color: #8b949e; line-height: 1.3; }
+    .sel-tooltip {
+      position: fixed;
+      z-index: 500;
+      background: #161b22;
+      border: 1px solid #58a6ff;
+      border-radius: 6px;
+      padding: 5px 7px;
+      display: none;
+      gap: 6px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.85);
+    }
+    .sel-tooltip.show { display: flex; }
+    /* Frosted Translucent Tab Group Overlay */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(1, 4, 9, 0.68);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      padding: 14px;
+    }
+    .overlay.open { display: flex; }
+    .overlay-shell {
+      background: rgba(13, 17, 23, 0.84);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(88, 166, 255, 0.25);
+      border-radius: 12px;
+      width: 97%;
+      height: 96%;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
+    }
+    .overlay-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 18px;
+      background: rgba(22, 27, 34, 0.88);
+      border-bottom: 1px solid #30363d;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .staging-tray {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      background: rgba(31, 111, 235, 0.12);
+      border-bottom: 1px solid #30363d;
+      font-size: 0.82rem;
+    }
+    .overlay-canvas {
+      flex: 1;
+      overflow: auto;
+      padding: 16px;
+      cursor: grab;
+    }
+    .overlay-canvas.grabbing { cursor: grabbing; user-select: none; }
+    .shelf {
+      border: 1px solid rgba(48, 54, 61, 0.9);
+      background: rgba(22, 27, 34, 0.65);
+      border-radius: 10px;
+      margin-bottom: 18px;
+      padding: 14px;
+    }
+    .shelf-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #30363d;
+      margin-bottom: 10px;
+    }
+    .shelf-findings {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      background: rgba(13, 17, 23, 0.78);
+      border: 1px solid #30363d;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 0.81rem;
+    }
+    .shelf-track {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+      align-items: stretch;
+    }
+    .comp-col {
+      flex: 0 0 var(--col-w, 860px);
+      max-width: 94vw;
+      height: var(--col-h, 76vh);
+      background: rgba(22, 27, 34, 0.9);
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: flex-basis 0.15s, border-color 0.15s;
+    }
+    .comp-col.drag-over { border: 2px dashed #58a6ff; }
+    .comp-card-top {
+      padding: 13px 15px;
+      border-bottom: 1px solid #30363d;
+      background: rgba(22, 27, 34, 0.96);
+      flex-shrink: 0;
+      cursor: move;
+    }
+    .comp-readme {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 18px;
+      background: rgba(13, 17, 23, 0.92);
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h2>Better GitHub Search</h2>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <button class="btn-sec btn-sm" id="mainUndoBtn" onclick="performUndo()" disabled>↶ Undo</button>
+      <button class="btn-sec btn-sm" id="mainRedoBtn" onclick="performRedo()" disabled>↷ Redo</button>
+      <button class="btn-sec btn-sm" onclick="openTabOverlay(null, null)">Open Tab Groups (<span id="topTabCount">0</span>)</button>
+      <button class="btn-sec btn-sm" onclick="toggleLegend()">? Syntax Legend</button>
+    </div>
+  </div>
+
+  <div class="layout" id="mainLayout">
+    <aside>
+      <div class="panel">
+        <div class="label"><span>Active Tab Groups</span></div>
+        <div id="tabGroupsContainer"></div>
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <input type="text" id="newTabGroupInput" style="flex:1; padding:5px 8px; font-size:0.82rem;" placeholder="New tab group..." onkeydown="if(event.key==='Enter') createTabGroupFromInput()" />
+          <button class="btn-sec btn-xs" onclick="createTabGroupFromInput()">+ Group</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="label"><span>Bookmark Groups (Saved Tab Groups)</span></div>
+        <div id="bookmarkGroupsContainer"></div>
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <input type="text" id="newBmGroupInput" style="flex:1; padding:5px 8px; font-size:0.82rem;" placeholder="New bookmark group..." onkeydown="if(event.key==='Enter') createBmGroupFromInput()" />
+          <button class="btn-sec btn-xs" onclick="createBmGroupFromInput()">+ Save</button>
+        </div>
+        <div style="display:flex; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid #21262d;">
+          <button class="btn-sec btn-xs" style="flex:1;" onclick="exportBookmarksOnly()">Export Bookmarks</button>
+          <button class="btn-sec btn-xs" style="flex:1;" onclick="document.getElementById('importBmFile').click()">Import Bookmarks</button>
+          <input type="file" id="importBmFile" accept=".json" style="display:none;" onchange="importBookmarksOnly(event)" />
+        </div>
+      </div>
+
+
+      <div class="panel">
+        <div class="label"><span>Saved Searches</span></div>
+        <div id="savedSearchesContainer"></div>
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <input type="text" id="newSearchNameInput" style="flex:1; padding:5px 8px; font-size:0.82rem;" placeholder="Name current search..." onkeydown="if(event.key==='Enter') saveCurrentSearch()" />
+          <button class="btn-sec btn-xs" onclick="saveCurrentSearch()">Save</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="label"><span>Backup &amp; Restore</span></div>
+        <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; color:#8b949e; margin-bottom:8px; cursor:pointer;">
+          <input type="checkbox" id="includeCacheChk" checked /> Include cached READMEs
+        </label>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; font-size:0.8rem; color:#8b949e;">
+          <span>Undo History Steps:</span>
+          <select id="undoLimitSel" style="padding:2px 6px; font-size:0.78rem;" onchange="updateUndoLimit(this.value)">
+            <option value="0">0</option>
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="250">250</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+            <option value="9001">9001</option>
+          </select>
+        </div>
+        <div id="undoLimitWarn" style="display:none; font-size:0.76rem; color:#e3b341; margin-bottom:8px;">Are you sure about this?</div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-sec btn-xs" style="flex:1;" onclick="exportBackup()">Export JSON</button>
+          <button class="btn-sec btn-xs" style="flex:1;" onclick="document.getElementById('importFile').click()">Import JSON</button>
+          <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importBackup(event)" />
+        </div>
+      </div>
+    </aside>
+    <main>
+      <div class="panel">
+        <div class="label"><span>GitHub Personal Access Token (Stored Locally in Browser Only)</span></div>
+        <input type="password" id="pat" style="width:100%;" placeholder="Paste github_pat_... or ghp_..." oninput="updateEstimate()" onchange="localStorage.setItem('gh_pat', this.value); updateEstimate();" />
+      </div>
+
+      <div class="panel">
+        <div class="label">
+          <span>Active Query Blocks (Drag edges to reorder · Drag centre to merge · Drag box/Ctrl/Shift to select)</span>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+            <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; color:#8b949e; text-transform:none; letter-spacing:0; font-weight:500; cursor:pointer;" title="Query GitHub API for matching topic slugs and repo counts as you type topic:...">
+              <input type="checkbox" id="liveTopicAcChk" checked onchange="toggleLiveTopicAc(this.checked)" /> Live Topic Lookup
+            </label>
+            <button class="btn-sec btn-xs" id="wrapSelBtn" onclick="wrapSelectedTokens()" style="display:none; border-color:#58a6ff; color:#79c0ff;" title="Wrap selected pills in matching ( ) brackets">Wrap ( )</button>
+            <button class="btn-sec btn-xs" onclick="addTopLevelOp()" title="Add an OR connector pill (click pill to cycle OR / AND / ( / ))">+ Op / ( )</button>
+            <button class="btn-sec btn-xs" onclick="autoOrderQuery()" title="Sort query blocks into a clean, readable order">Auto-Order</button>
+            <button class="btn-sec btn-xs" onclick="clearQuery()">Clear All</button>
+          </div>
+        </div>
+
+        <div class="chip-box" id="chipBox" onclick="document.getElementById('tokenInput').focus()">
+          <input type="text" id="tokenInput" class="main-in" autocomplete="off" placeholder="e.g. topic:roleplay, language:python, stars:>50 + Enter..." oninput="handleTokenInput()" onkeydown="handleTokenKey(event)" />
+          <div class="ac-dropdown" id="acDropdown"></div>
+        </div>
+
+        <div id="findingsBar" class="findings-bar">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:0.76rem; font-weight:700; color:#3fb950; text-transform:uppercase;">Pinned Findings (Click + to add to query)</span>
+            <button class="btn-sec btn-xs" onclick="clearFindings()">Dismiss</button>
+          </div>
+          <div id="findingsChips" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+        </div>
+
+        <div id="estimateBox" class="warn-box ok"></div>
+
+        <div style="margin-top:12px;">
+          <div class="label"><span>Saved Tags &amp; Filters (Click + to add to query, × to delete)</span></div>
+          <div class="preset-row" id="presetRow"></div>
+          <div style="display:flex; gap:6px; margin-top:8px;">
+            <input type="text" id="newPresetInput" style="flex:1; padding:5px 9px; font-size:0.83rem;" placeholder="Save a tag or filter shortcut (e.g. lorebook, -topic:discord-bot)..." onkeydown="if(event.key==='Enter') saveNewPreset()" />
+            <button class="btn-sec btn-xs" onclick="saveNewPreset()">+ Save Tag</button>
+          </div>
+        </div>
+
+        <div class="controls">
+          <select id="sort" onchange="if(allRepos.length) { sortRepos(); renderRepos(); }">
+            <option value="updated">Sort: Recently Updated</option>
+            <option value="stars">Sort: Most Stars</option>
+            <option value="created">Sort: Newest Created</option>
+            <option value="velocity">Sort: Star Velocity</option>
+          </select>
+          <input type="number" id="pages" value="2" min="1" max="10" title="Pages per branch (100 repos per page)" oninput="updateEstimate()" onchange="updateEstimate()" />
+          <input type="text" id="filter" placeholder="Instant filter on loaded repos..." oninput="renderRepos()" />
+          <label style="display:flex; align-items:center; gap:5px; font-size:0.8rem; color:#8b949e; white-space:nowrap; cursor:pointer;">
+            <input type="checkbox" id="showHiddenChk" onchange="renderRepos()" /> Show Hidden
+          </label>
+          <button onclick="runSearch()">Fetch Repos</button>
+        </div>
+      </div>
+
+      <p id="status" style="color:#8b949e; font-size:0.88rem; margin:6px 0;"></p>
+      <div id="results"></div>
+    </main>
+    <aside class="sidebar-right panel" id="rightLegend">
+      <div class="label"><span>GitHub Syntax Legend</span></div>
+      <div style="font-size:0.74rem; color:#8b949e; margin-bottom:8px;">Click any example to add to query:</div>
+      <div class="legend-item">
+        <div class="legend-code" onclick="addToken('(topic:roleplay OR topic:interactive-fiction)')">(topic:roleplay OR topic:interactive-fiction)</div>
+        <div class="legend-desc">Nested OR group; expands &amp; merges automatically.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code" onclick="addToken('topic:llm')">topic:llm</div>
+        <div class="legend-desc">Require a topic tag (stack for AND).</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code" onclick="addToken('-topic:discord-bot')">-topic:discord-bot</div>
+        <div class="legend-desc">Exclude any topic or keyword.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code" onclick="addToken('stars:5..1000')">stars:5..1000</div>
+        <div class="legend-desc">Star range (also <b>stars:&gt;20</b>, <b>stars:&lt;500</b>).</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code" onclick="addToken('pushed:>2026-01-01')">pushed:&gt;2026-01-01</div>
+        <div class="legend-desc">Code pushed after YYYY-MM-DD.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code" onclick="addToken('created:>2025-06-01')">created:&gt;2025-06-01</div>
+        <div class="legend-desc">Repo created after YYYY-MM-DD.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code" onclick="addToken('language:typescript')">language:typescript</div>
+        <div class="legend-desc">Filter by primary code language.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code" onclick="addToken('lorebook in:readme')">lorebook in:readme</div>
+        <div class="legend-desc">Search inside README, <b>in:name</b>, or <b>in:description</b>.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code" onclick="addToken('&quot;character card&quot;')">"character card"</div>
+        <div class="legend-desc">Exact multi-word phrase match.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code" onclick="addToken('fork:true')">fork:true</div>
+        <div class="legend-desc">Include forks in search results.</div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="sel-tooltip" id="selTooltip">
+    <button class="btn-xs" id="selPinBtn">+ Pin Finding</button>
+    <button class="btn-sec btn-xs" id="selQueryBtn">+ Add to Query</button>
+  </div>
+
+  <div class="overlay" id="tabOverlay" onclick="if(event.target===this) closeOverlay()">
+    <div class="overlay-shell">
+      <div class="overlay-header">
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <strong style="font-size:1.05rem;">Tab Groups Workspace</strong>
+          <button class="btn-sec btn-xs" id="ovUndoBtn" onclick="performUndo()" disabled>↶ Undo</button>
+          <button class="btn-sec btn-xs" id="ovRedoBtn" onclick="performRedo()" disabled>↷ Redo</button>
+          <div style="display:flex; align-items:center; gap:6px; background:#0d1117; padding:4px 8px; border-radius:6px; border:1px solid #30363d;">
+            <span style="font-size:0.78rem; color:#8b949e;">Scale:</span>
+            <button class="btn-sec btn-xs" onclick="adjustZoom(-10)">−</button>
+            <span id="zoomLabel" title="Click to reset to 100%" onclick="resetZoom()" style="cursor:pointer; font-size:0.8rem; font-family:monospace; min-width:42px; text-align:center;">100%</span>
+            <button class="btn-sec btn-xs" onclick="adjustZoom(10)">+</button>
+          </div>
+          <span style="font-size:0.76rem; color:#8b949e;">Drag title bar to reorder · Drag background or Arrows to pan · Ctrl+Scroll to zoom</span>
+        </div>
+        <button class="btn-sec btn-sm" onclick="closeOverlay()">Close (Esc)</button>
+      </div>
+      <div class="staging-tray" id="overlayStagingTray"></div>
+      <div class="overlay-canvas" id="overlayCanvas"></div>
+    </div>
+  </div>
+  <script>
+    var allRepos = [];
+    var repoById = {};
+    var queryTokens = ['(topic:roleplay OR topic:interactive-fiction)', 'topic:llm', 'stars:5..1000'];
+    var savedPresets = [];
+    var savedSearches = [];
+    var tabGroups = {};
+    var bookmarkGroups = {};
+    var lastTabGroupId = 'tabs_default';
+    var lastBmGroupId = 'bm_default';
+    var triage = {};
+    var readmeCache = {};
+    var pinnedFindings = [];
+    var overlayStagedFindings = [];
+    var openInlineReadmes = {};
+    var activePopover = null;
+    var popoverSort = 'recent';
+    var overlayZoom = 100;
+    var focusRepoIdInOverlay = null;
+    var shelfCommonalityFilters = {};
+    var draggedCardInfo = null;
+	    var undoStack = [];
+    var redoStack = [];
+    var maxUndoSteps = parseInt(localStorage.getItem('gh_undo_limit') || '100', 10);
+    var GROUP_PALETTE = ['#58a6ff', '#3fb950', '#d2a8ff', '#f0883e', '#ff7b72', '#79c0ff', '#56d364', '#e3b341'];
+
+    function getGroupColor(gid) {
+      if (tabGroups[gid] && tabGroups[gid].color) return tabGroups[gid].color;
+      var keys = Object.keys(tabGroups);
+      var idx = Math.max(0, keys.indexOf(gid));
+      var col = GROUP_PALETTE[idx % GROUP_PALETTE.length];
+      if (tabGroups[gid]) tabGroups[gid].color = col;
+      return col;
+    }
+
+    function captureSnapshot() {
+      return JSON.stringify({
+        queryTokens: queryTokens,
+        tabGroups: tabGroups,
+        bookmarkGroups: bookmarkGroups,
+        lastTabGroupId: lastTabGroupId,
+        lastBmGroupId: lastBmGroupId,
+        activeTabGroupIds: activeTabGroupIds,
+        pinnedFindings: pinnedFindings,
+        overlayStagedFindings: overlayStagedFindings
+      });
+    }
+
+    function pushUndo() {
+      if (maxUndoSteps <= 0) return;
+      var snap = captureSnapshot();
+      if (undoStack.length && undoStack[undoStack.length - 1] === snap) return;
+      undoStack.push(snap);
+      if (undoStack.length > maxUndoSteps) undoStack.shift();
+      redoStack = [];
+      updateUndoButtons();
+    }
+
+    function applySnapshot(snapStr) {
+      var s = JSON.parse(snapStr);
+      queryTokens = s.queryTokens || [];
+      tabGroups = s.tabGroups || {};
+      bookmarkGroups = s.bookmarkGroups || {};
+      lastTabGroupId = s.lastTabGroupId || Object.keys(tabGroups)[0];
+      lastBmGroupId = s.lastBmGroupId || Object.keys(bookmarkGroups)[0];
+      activeTabGroupIds = s.activeTabGroupIds || Object.keys(tabGroups);
+      pinnedFindings = s.pinnedFindings || [];
+      overlayStagedFindings = s.overlayStagedFindings || [];
+      saveState();
+      renderChips();
+      renderSidebars();
+      renderFindingsBar();
+      updateTopTabCount();
+      renderRepos();
+      if (document.getElementById('tabOverlay').classList.contains('open')) renderOverlay();
+      updateUndoButtons();
+    }
+
+    function performUndo() {
+      if (!undoStack.length) return;
+      redoStack.push(captureSnapshot());
+      applySnapshot(undoStack.pop());
+    }
+
+    function performRedo() {
+      if (!redoStack.length) return;
+      undoStack.push(captureSnapshot());
+      applySnapshot(redoStack.pop());
+    }
+
+    function updateUndoButtons() {
+      var uDis = undoStack.length === 0;
+      var rDis = redoStack.length === 0;
+      ['mainUndoBtn', 'ovUndoBtn'].forEach(function(id) { var el = document.getElementById(id); if (el) el.disabled = uDis; });
+      ['mainRedoBtn', 'ovRedoBtn'].forEach(function(id) { var el = document.getElementById(id); if (el) el.disabled = rDis; });
+    }
+
+    function updateUndoLimit(val) {
+      maxUndoSteps = parseInt(val, 10);
+      if (isNaN(maxUndoSteps)) maxUndoSteps = 100;
+      localStorage.setItem('gh_undo_limit', String(maxUndoSteps));
+      var warn = document.getElementById('undoLimitWarn');
+      if (warn) warn.style.display = (maxUndoSteps === 0 || maxUndoSteps === 9001) ? 'block' : 'none';
+      if (maxUndoSteps === 0) { undoStack = []; redoStack = []; }
+      else if (undoStack.length > maxUndoSteps) undoStack = undoStack.slice(undoStack.length - maxUndoSteps);
+      updateUndoButtons();
+    }
+
+
+    var STOP_WORDS = {
+      'the':1,'and':1,'for':1,'with':1,'that':1,'this':1,'from':1,'your':1,'have':1,
+      'are':1,'was':1,'were':1,'been':1,'being':1,'into':1,'over':1,'under':1,'about':1,
+      'using':1,'used':1,'based':1,'simple':1,'tool':1,'tools':1,'app':1,'application':1,
+      'project':1,'open':1,'source':1,'github':1,'code':1,'web':1,'api':1,'can':1,'you':1
+    };
+
+    window.onload = function() {
+      loadState();
+      renderChips();
+      renderPresets();
+      renderSidebars();
+      renderSavedSearches();
+      renderFindingsBar();
+      updateTopTabCount();
+      setupCanvasInteractions();
+      var acChk = document.getElementById('liveTopicAcChk');
+      if (acChk) acChk.checked = liveTopicAcEnabled;
+      var undoSel = document.getElementById('undoLimitSel');
+      if (undoSel) undoSel.value = String(maxUndoSteps);
+      updateUndoLimit(maxUndoSteps);
+
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('#chipBox')) closeAcDropdown();
+        if (activePopover && !e.target.closest('.bm-popover') && !e.target.closest('.pop-trigger')) {
+          activePopover = null;
+          renderRepos();
+        }
+      });
+
+      document.addEventListener('keydown', function(e) {
+        var inInput = e.target && /^(INPUT|TEXTAREA|SELECT)$/i.test(e.target.tagName);
+        if (!inInput && (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          performUndo();
+          return;
+        }
+        if (!inInput && (e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+          e.preventDefault();
+          performRedo();
+          return;
+        }
+        var ov = document.getElementById('tabOverlay');
+        if (!ov.classList.contains('open')) return;
+        if (e.key === 'Escape') { closeOverlay(); return; }
+        var canvas = document.getElementById('overlayCanvas');
+        var tracks = canvas.querySelectorAll('.shelf-track');
+        if (e.key === 'ArrowRight' && tracks.length) tracks[0].scrollLeft += 340;
+        if (e.key === 'ArrowLeft' && tracks.length) tracks[0].scrollLeft -= 340;
+        if (e.key === 'ArrowDown') canvas.scrollTop += 240;
+        if (e.key === 'ArrowUp') canvas.scrollTop -= 240;
+      });
+    };
+    function loadState() {
+      var pat = localStorage.getItem('gh_pat');
+      if (pat) document.getElementById('pat').value = pat;
+
+      var stTok = localStorage.getItem('gh_active_tokens');
+      if (stTok) queryTokens = JSON.parse(stTok);
+
+      var stPre = localStorage.getItem('gh_custom_presets');
+      savedPresets = stPre ? JSON.parse(stPre) : [];
+
+      var stSrc = localStorage.getItem('gh_saved_searches');
+      savedSearches = stSrc ? JSON.parse(stSrc) : [];
+
+      var stTabs = localStorage.getItem('gh_tab_groups');
+      tabGroups = stTabs ? JSON.parse(stTabs) : {
+        tabs_default: { id: 'tabs_default', name: 'Main Tabs', updatedAt: Date.now(), items: [] }
+      };
+      if (!Object.keys(tabGroups).length) {
+        tabGroups.tabs_default = { id: 'tabs_default', name: 'Main Tabs', updatedAt: Date.now(), items: [] };
+      }
+
+      var stBms = localStorage.getItem('gh_bm_groups');
+      bookmarkGroups = stBms ? JSON.parse(stBms) : {
+        bm_default: { id: 'bm_default', name: 'Saved Bookmarks', updatedAt: Date.now(), items: [] }
+      };
+      if (!Object.keys(bookmarkGroups).length) {
+        bookmarkGroups.bm_default = { id: 'bm_default', name: 'Saved Bookmarks', updatedAt: Date.now(), items: [] };
+      }
+
+      lastTabGroupId = localStorage.getItem('gh_last_tab_grp') || Object.keys(tabGroups)[0];
+      if (!tabGroups[lastTabGroupId]) lastTabGroupId = Object.keys(tabGroups)[0];
+
+      lastBmGroupId = localStorage.getItem('gh_last_bm_grp') || Object.keys(bookmarkGroups)[0];
+      if (!bookmarkGroups[lastBmGroupId]) lastBmGroupId = Object.keys(bookmarkGroups)[0];
+
+      var stTri = localStorage.getItem('gh_triage');
+      triage = stTri ? JSON.parse(stTri) : {};
+
+      var stCache = localStorage.getItem('gh_readme_cache');
+      readmeCache = stCache ? JSON.parse(stCache) : {};
+
+      var stFind = localStorage.getItem('gh_pinned_findings');
+      pinnedFindings = stFind ? JSON.parse(stFind) : [];
+
+      if (localStorage.getItem('gh_legend_hidden') === '1') {
+        document.getElementById('rightLegend').classList.add('hidden');
+        document.getElementById('mainLayout').classList.add('no-legend');
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem('gh_active_tokens', JSON.stringify(queryTokens));
+      localStorage.setItem('gh_custom_presets', JSON.stringify(savedPresets));
+      localStorage.setItem('gh_saved_searches', JSON.stringify(savedSearches));
+      localStorage.setItem('gh_tab_groups', JSON.stringify(tabGroups));
+      localStorage.setItem('gh_bm_groups', JSON.stringify(bookmarkGroups));
+      localStorage.setItem('gh_last_tab_grp', lastTabGroupId);
+      localStorage.setItem('gh_last_bm_grp', lastBmGroupId);
+      localStorage.setItem('gh_triage', JSON.stringify(triage));
+      localStorage.setItem('gh_pinned_findings', JSON.stringify(pinnedFindings));
+      try {
+        localStorage.setItem('gh_readme_cache', JSON.stringify(readmeCache));
+      } catch (e) {}
+    }
+
+    function toggleLegend() {
+      var leg = document.getElementById('rightLegend');
+      var lay = document.getElementById('mainLayout');
+      var isHidden = leg.classList.toggle('hidden');
+      lay.classList.toggle('no-legend', isHidden);
+      localStorage.setItem('gh_legend_hidden', isHidden ? '1' : '0');
+    }
+    /* ---------------- QUERY HIGHLIGHTING & TEXT SELECTION ---------------- */
+    function getActiveQueryQualifiers() {
+      var map = {};
+      var words = [];
+      queryTokens.forEach(function(tok) {
+        var clean = tok.replace(/[()]/g, '').trim();
+        if (!clean || clean === 'OR' || clean === 'AND' || clean.charAt(0) === '-') return;
+        map[clean.toLowerCase()] = true;
+        if (!/^(topic|language|stars|pushed|created|fork|in):/i.test(clean)) {
+          var w = clean.replace(/^"|"$/g, '').trim();
+          if (w.length >= 2) words.push(w);
+        }
+      });
+      return { map: map, words: words };
+    }
+
+    function isQualifierInQuery(qualStr) {
+      var qMap = getActiveQueryQualifiers().map;
+      return !!qMap[qualStr.toLowerCase()];
+    }
+
+    function highlightTextToEl(containerEl, rawText) {
+      var words = getActiveQueryQualifiers().words;
+      if (!words.length || !rawText) {
+        containerEl.textContent = rawText || '';
+        return;
+      }
+      var escaped = words.map(function(w) { return w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
+      var rx = new RegExp('(' + escaped.join('|') + ')', 'gi');
+      var parts = String(rawText).split(rx);
+      containerEl.innerHTML = '';
+      for (var i = 0; i < parts.length; i++) {
+        if (i % 2 === 1) {
+          var mk = document.createElement('mark');
+          mk.className = 'q-hit';
+          mk.textContent = parts[i];
+          containerEl.appendChild(mk);
+        } else {
+          containerEl.appendChild(document.createTextNode(parts[i]));
+        }
+      }
+    }
+
+    function highlightHtmlString(htmlStr) {
+      var words = getActiveQueryQualifiers().words;
+      if (!words.length || !htmlStr) return htmlStr;
+      var div = document.createElement('div');
+      div.innerHTML = htmlStr;
+      var escaped = words.map(function(w) { return w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
+      var rx = new RegExp('(' + escaped.join('|') + ')', 'gi');
+      var walker = document.createTreeWalker(div, NodeFilter.SHOW_TEXT, null, false);
+      var nodes = [];
+      var n;
+      while ((n = walker.nextNode())) {
+        if (n.parentNode && !/^(SCRIPT|STYLE|MARK)$/i.test(n.parentNode.tagName)) nodes.push(n);
+      }
+      nodes.forEach(function(tn) {
+        if (!rx.test(tn.nodeValue)) return;
+        rx.lastIndex = 0;
+        var frag = document.createDocumentFragment();
+        var parts = tn.nodeValue.split(rx);
+        for (var i = 0; i < parts.length; i++) {
+          if (i % 2 === 1) {
+            var mk = document.createElement('mark');
+            mk.className = 'q-hit';
+            mk.textContent = parts[i];
+            frag.appendChild(mk);
+          } else {
+            frag.appendChild(document.createTextNode(parts[i]));
+          }
+        }
+        tn.parentNode.replaceChild(frag, tn);
+      });
+      return div.innerHTML;
+    }
+
+    function pinMainFinding(qualStr) {
+      pushUndo();
+	  var val = qualStr.trim();
+      if (!val) return;
+      if (pinnedFindings.indexOf(val) === -1) {
+        pinnedFindings.push(val);
+        saveState();
+        renderFindingsBar();
+      }
+    }
+
+    function stageOverlayFinding(qualStr) {
+      var val = qualStr.trim();
+      if (!val) return;
+      if (overlayStagedFindings.indexOf(val) === -1) {
+        overlayStagedFindings.push(val);
+        renderOverlayStagingTray();
+      }
+    }
+
+    document.addEventListener('mouseup', function(e) {
+      var tip = document.getElementById('selTooltip');
+      if (!tip || e.target.closest('#selTooltip')) return;
+      setTimeout(function() {
+        var sel = window.getSelection();
+        var txt = sel ? sel.toString().trim() : '';
+        if (txt.length >= 2 && txt.length <= 60 && !/\n/.test(txt)) {
+          var rect = sel.getRangeAt(0).getBoundingClientRect();
+          tip.style.left = Math.max(10, Math.min(window.innerWidth - 230, rect.left)) + 'px';
+          tip.style.top = Math.max(10, rect.top - 40) + 'px';
+          tip.classList.add('show');
+          var formatted = /\s/.test(txt) ? '"' + txt + '"' : txt;
+          var inOverlay = document.getElementById('tabOverlay').classList.contains('open');
+          document.getElementById('selPinBtn').textContent = inOverlay ? '+ Stage Finding' : '+ Pin Finding';
+          document.getElementById('selPinBtn').onclick = function() {
+            if (inOverlay) stageOverlayFinding(formatted);
+            else pinMainFinding(formatted);
+            tip.classList.remove('show');
+            window.getSelection().removeAllRanges();
+          };
+          document.getElementById('selQueryBtn').onclick = function() {
+            addToken(formatted);
+            tip.classList.remove('show');
+            window.getSelection().removeAllRanges();
+          };
+        } else {
+          tip.classList.remove('show');
+        }
+      }, 10);
+    });
+    /* ---------------- QUERY BLOCKS, INLINE EDITING & PRESETS ---------------- */
+    function addToken(raw) {
+	  pushUndo();
+      var val = raw.trim();
+      if (!val) return;
+      if (queryTokens.indexOf(val) === -1) {
+        queryTokens.push(val);
+        saveState();
+        renderChips();
+      }
+    }
+
+    function removeToken(idx) {
+	  pushUndo();
+      queryTokens.splice(idx, 1);
+      saveState();
+      renderChips();
+    }
+
+    function clearQuery() {
+      pushUndo();
+	  queryTokens = [];
+      saveState();
+      renderChips();
+    }
+
+    var liveTopicAcEnabled = localStorage.getItem('gh_live_topic_ac') !== '0';
+    var topicAcCache = {};
+    var acTimer = null;
+    var acSuggestions = [];
+    var acSelectedIdx = -1;
+
+    var COMMON_LANGUAGES = [
+      'typescript', 'javascript', 'python', 'rust', 'go', 'cpp', 'c', 'csharp', 'java',
+      'kotlin', 'swift', 'ruby', 'php', 'lua', 'gdscript', 'dart', 'shell', 'html', 'css',
+      'svelte', 'vue', 'jupyter-notebook', 'nix', 'zig', 'elixir', 'haskell', 'scala', 'r'
+    ];
+
+    function toggleLiveTopicAc(enabled) {
+      liveTopicAcEnabled = !!enabled;
+      localStorage.setItem('gh_live_topic_ac', liveTopicAcEnabled ? '1' : '0');
+      if (!liveTopicAcEnabled) closeAcDropdown();
+      else handleTokenInput();
+    }
+
+    function closeAcDropdown() {
+      var dd = document.getElementById('acDropdown');
+      if (dd) dd.classList.remove('open');
+      acSuggestions = [];
+      acSelectedIdx = -1;
+    }
+
+    function renderAcDropdown() {
+      var dd = document.getElementById('acDropdown');
+      if (!dd) return;
+      if (!acSuggestions.length) {
+        dd.classList.remove('open');
+        return;
+      }
+      dd.innerHTML = '';
+      acSuggestions.forEach(function(item, idx) {
+        var row = document.createElement('div');
+        row.className = 'ac-item' + (idx === acSelectedIdx ? ' active' : '');
+        var code = document.createElement('span');
+        code.className = 'ac-code';
+        code.textContent = item.value;
+        var meta = document.createElement('span');
+        meta.className = 'ac-meta';
+        meta.textContent = item.meta || '';
+        row.appendChild(code);
+        row.appendChild(meta);
+        row.onmousedown = function(e) {
+          e.preventDefault();
+          applyAcSuggestion(idx);
+        };
+        dd.appendChild(row);
+      });
+      dd.classList.add('open');
+    }
+
+    function applyAcSuggestion(idx) {
+      var item = acSuggestions[idx];
+      if (!item) return;
+      if (editingTokenTarget) {
+        var ed = editingTokenTarget.input;
+        if (item.insertOnly) {
+          ed.value = item.value;
+          ed.style.width = Math.max(12, ed.value.length + 5) + 'ch';
+          closeAcDropdown();
+          ed.focus();
+          handleTokenInput(ed.value);
+        } else {
+          editingTokenTarget.commit(item.value);
+        }
+        return;
+      }
+      var input = document.getElementById('tokenInput');
+      if (item.insertOnly) {
+        input.value = item.value;
+        closeAcDropdown();
+        input.focus();
+        handleTokenInput(input.value);
+      } else {
+        addToken(item.value);
+        input.value = '';
+        closeAcDropdown();
+        input.focus();
+      }
+    }
+
+    function getDateDaysAgo(days) {
+      var d = new Date(Date.now() - days * 86400000);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function handleTokenInput(overrideText) {
+      var raw = typeof overrideText === 'string' ? overrideText : document.getElementById('tokenInput').value;
+      var trimmed = raw.trim();
+      var neg = trimmed.charAt(0) === '-' ? '-' : '';
+      var body = neg ? trimmed.slice(1) : trimmed;
+
+      if (acTimer) clearTimeout(acTimer);
+      if (!body || body.length < 2) {
+        closeAcDropdown();
+        return;
+      }
+
+      var lower = body.toLowerCase();
+
+      if (lower.indexOf('language:') === 0) {
+        var langPrefix = lower.slice(9);
+        acSuggestions = COMMON_LANGUAGES
+          .filter(function(l) { return l.indexOf(langPrefix) === 0; })
+          .slice(0, 8)
+          .map(function(l) { return { value: neg + 'language:' + l, meta: 'Language filter' }; });
+        acSelectedIdx = acSuggestions.length ? 0 : -1;
+        renderAcDropdown();
+        return;
+      }
+
+      if (lower.indexOf('topic:') === 0) {
+        var tPrefix = lower.slice(6).trim();
+        if (tPrefix.length < 2 || !liveTopicAcEnabled) {
+          closeAcDropdown();
+          return;
+        }
+        if (topicAcCache[tPrefix]) {
+          acSuggestions = topicAcCache[tPrefix].map(function(it) {
+            return { value: neg + 'topic:' + it.name, meta: it.meta };
+          });
+          acSelectedIdx = acSuggestions.length ? 0 : -1;
+          renderAcDropdown();
+          return;
+        }
+        acTimer = setTimeout(async function() {
+          try {
+            var pat = document.getElementById('pat').value.trim();
+            var url = String.fromCharCode(104,116,116,112,115,58,47,47,97,112,105,46,103,105,116,104,117,98,46,99,111,109,47,115,101,97,114,99,104,47,116,111,112,105,99,115) + '?q=' + encodeURIComponent(tPrefix) + '&per_page=8';
+            var headers = { 'Accept': 'application/vnd.github+json' };
+            if (pat) headers['Authorization'] = 'Bearer ' + pat;
+            var res = await fetch(url, { headers: headers });
+            if (!res.ok) return;
+            var data = await res.json();
+            var mapped = (data.items || []).map(function(t) {
+              var desc = t.short_description ? (' · ' + t.short_description.slice(0, 42)) : '';
+              return { name: t.name, meta: (t.curated ? '★ Curated' : 'Topic') + desc };
+            });
+            topicAcCache[tPrefix] = mapped;
+            var activeVal = editingTokenTarget ? editingTokenTarget.input.value : document.getElementById('tokenInput').value;
+            if (activeVal.trim().toLowerCase().indexOf('topic:' + tPrefix) !== -1) {
+              acSuggestions = mapped.map(function(it) {
+                return { value: neg + 'topic:' + it.name, meta: it.meta };
+              });
+              acSelectedIdx = acSuggestions.length ? 0 : -1;
+              renderAcDropdown();
+            }
+          } catch (err) {}
+        }, 350);
+        return;
+      }
+
+      var templates = [
+        { value: neg + 'topic:', meta: 'Match GitHub topic slug', insertOnly: true },
+        { value: neg + 'language:', meta: 'Filter by primary code language', insertOnly: true },
+        { value: neg + 'stars:5..1000', meta: 'Star count range' },
+        { value: neg + 'stars:>50', meta: 'Minimum star count' },
+        { value: neg + 'pushed:>' + getDateDaysAgo(30), meta: 'Updated in last 30 days' },
+        { value: neg + 'pushed:>' + getDateDaysAgo(180), meta: 'Updated in last 6 months' },
+        { value: neg + 'created:>' + getDateDaysAgo(365), meta: 'Created in last year' },
+        { value: neg + 'in:readme', meta: 'Search inside README text' },
+        { value: neg + 'in:description', meta: 'Search inside repo description' },
+        { value: neg + 'fork:true', meta: 'Include forked repositories' }
+      ];
+      acSuggestions = templates.filter(function(t) {
+        return t.value.toLowerCase().indexOf(trimmed.toLowerCase()) === 0 && t.value.toLowerCase() !== trimmed.toLowerCase();
+      }).slice(0, 7);
+      acSelectedIdx = acSuggestions.length ? 0 : -1;
+      renderAcDropdown();
+    }
+
+    function handleTokenKey(e) {
+      var input = document.getElementById('tokenInput');
+      var ddOpen = document.getElementById('acDropdown').classList.contains('open');
+
+      if (ddOpen && acSuggestions.length) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          acSelectedIdx = (acSelectedIdx + 1) % acSuggestions.length;
+          renderAcDropdown();
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          acSelectedIdx = (acSelectedIdx - 1 + acSuggestions.length) % acSuggestions.length;
+          renderAcDropdown();
+          return;
+        }
+        if (e.key === 'Tab' || (e.key === 'Enter' && acSelectedIdx >= 0)) {
+          e.preventDefault();
+          applyAcSuggestion(acSelectedIdx);
+          return;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeAcDropdown();
+          return;
+        }
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addToken(input.value);
+        input.value = '';
+        closeAcDropdown();
+      } else if (e.key === 'Backspace' && input.value === '' && queryTokens.length > 0) {
+        removeToken(queryTokens.length - 1);
+      }
+    }
+
+    var editingTokenTarget = null;
+
+    function editToken(idx) {
+      renderChips();
+      var box = document.getElementById('chipBox');
+      var targetChip = box.querySelectorAll('.q-chip')[idx];
+      if (!targetChip) return;
+
+      var oldVal = queryTokens[idx];
+      var done = false;
+      var editor = document.createElement('input');
+      editor.type = 'text';
+      editor.className = 'chip-editor';
+      editor.autocomplete = 'off';
+      editor.value = oldVal;
+      editor.style.cssText = 'background:#161b22;color:#fff;border:1px solid #58a6ff;border-radius:14px;padding:3px 10px;font-family:monospace;font-size:0.84rem;flex:0 0 auto;min-width:130px;width:' + (oldVal.length + 5) + 'ch;';
+
+      function commitEdit(overrideVal) {
+        if (done) return;
+        done = true;
+        editingTokenTarget = null;
+        closeAcDropdown();
+        pushUndo();
+        var nextVal = (typeof overrideVal === 'string' ? overrideVal : editor.value).trim();
+        if (!nextVal) queryTokens.splice(idx, 1);
+        else queryTokens[idx] = nextVal;
+        saveState();
+        renderChips();
+      }
+
+      editingTokenTarget = { input: editor, commit: commitEdit };
+
+      editor.onclick = function(e) { e.stopPropagation(); };
+      editor.onmousedown = function(e) { e.stopPropagation(); };
+      editor.oninput = function() {
+        editor.style.width = Math.max(12, editor.value.length + 5) + 'ch';
+        handleTokenInput(editor.value);
+      };
+      editor.onkeydown = function(e) {
+        e.stopPropagation();
+        var ddOpen = document.getElementById('acDropdown').classList.contains('open');
+        if (ddOpen && acSuggestions.length) {
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            acSelectedIdx = (acSelectedIdx + 1) % acSuggestions.length;
+            renderAcDropdown();
+            return;
+          }
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            acSelectedIdx = (acSelectedIdx - 1 + acSuggestions.length) % acSuggestions.length;
+            renderAcDropdown();
+            return;
+          }
+          if (e.key === 'Tab' || (e.key === 'Enter' && acSelectedIdx >= 0)) {
+            e.preventDefault();
+            applyAcSuggestion(acSelectedIdx);
+            return;
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            closeAcDropdown();
+            return;
+          }
+        }
+        if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+        if (e.key === 'Escape') {
+          done = true;
+          editingTokenTarget = null;
+          closeAcDropdown();
+          renderChips();
+        }
+      };
+      editor.onblur = function() {
+        setTimeout(function() {
+          if (!done) commitEdit();
+        }, 120);
+      };
+
+      targetChip.replaceWith(editor);
+      editor.focus();
+      editor.select();
+      handleTokenInput(editor.value);
+    }
+
+    var selectedTokenIndices = [];
+    var lastSelectedTokenIdx = null;
+    var draggedIndices = null;
+    var NEST_PALETTE = [
+      { border: '#b388ffcc', bg: 'rgba(137, 87, 229, 0.24)', text: '#e2c5ff' },
+      { border: '#00e5ffcc', bg: 'rgba(0, 184, 212, 0.20)', text: '#84ffff' },
+      { border: '#ffd740cc', bg: 'rgba(255, 196, 0, 0.20)', text: '#ffe57f' },
+      { border: '#ff4081cc', bg: 'rgba(245, 0, 87, 0.20)', text: '#ff80ab' },
+      { border: '#69f0aecc', bg: 'rgba(0, 200, 83, 0.20)', text: '#b9f6ca' }
+    ];
+
+    function tokenizeRawExpr(expr) {
+      var trimmed = expr.trim();
+      var raw = [];
+      var i = 0;
+      while (i < trimmed.length) {
+        if (/\s/.test(trimmed[i])) { i++; continue; }
+        if (trimmed[i] === '(' || trimmed[i] === ')') { raw.push(trimmed[i]); i++; continue; }
+        if (trimmed[i] === '"') {
+          var end = trimmed.indexOf('"', i + 1);
+          if (end === -1) end = trimmed.length - 1;
+          raw.push(trimmed.slice(i, end + 1));
+          i = end + 1;
+          continue;
+        }
+        var start = i;
+        while (i < trimmed.length && !/[\s()]/.test(trimmed[i])) {
+          if (trimmed[i] === '"') {
+            var qEnd = trimmed.indexOf('"', i + 1);
+            i = qEnd === -1 ? trimmed.length : qEnd + 1;
+          } else { i++; }
+        }
+        raw.push(trimmed.slice(start, i));
+      }
+      return raw;
+    }
+
+    function normalizeFlatTokens() {
+      var flat = [];
+      queryTokens.forEach(function(tok) {
+        tokenizeRawExpr(tok).forEach(function(piece) {
+          if (piece) flat.push(piece);
+        });
+      });
+      queryTokens = flat;
+    }
+
+    function computeFlatBracketInfo(tokens) {
+      var info = [];
+      var stack = [];
+      tokens.forEach(function(tok, idx) {
+        if (tok === '(') {
+          var depth = stack.length;
+          stack.push({ idx: idx, depth: depth });
+          info[idx] = { kind: 'paren', depth: depth, matched: false };
+        } else if (tok === ')') {
+          if (stack.length > 0) {
+            var open = stack.pop();
+            info[open.idx].matched = true;
+            info[idx] = { kind: 'paren', depth: open.depth, matched: true };
+          } else {
+            info[idx] = { kind: 'paren', depth: 0, matched: false };
+          }
+        } else if (stack.length > 0) {
+          info[idx] = { kind: 'inside', depth: stack[stack.length - 1].depth };
+        }
+      });
+      return info;
+    }
+
+    function clearTokenSelection() {
+      selectedTokenIndices = [];
+      lastSelectedTokenIdx = null;
+      updateSelectionControls();
+    }
+
+    function updateSelectionControls() {
+      var btn = document.getElementById('wrapSelBtn');
+      if (btn) btn.style.display = selectedTokenIndices.length > 0 ? 'inline-block' : 'none';
+    }
+    function addTopLevelOp() {
+      pushUndo();
+      clearTokenSelection();
+      queryTokens.push('OR');
+      saveState();
+      renderChips();
+    }
+
+    function wrapSelectedTokens() {
+      if (!selectedTokenIndices.length) return;
+      pushUndo();
+      var sorted = selectedTokenIndices.slice().sort(function(a, b) { return a - b; });
+      var first = sorted;
+      var last = sorted[sorted.length - 1];
+      queryTokens.splice(last + 1, 0, ')');
+      queryTokens.splice(first, 0, '(');
+      clearTokenSelection();
+      saveState();
+      renderChips();
+    }
+
+    function autoOrderQuery() {
+      if (queryTokens.length < 2) return;
+      var bracketInfo = computeFlatBracketInfo(queryTokens);
+      var hasUnmatched = bracketInfo.some(function(b) { return b && b.kind === 'paren' && !b.matched; });
+      if (hasUnmatched) {
+        alert('Close or remove unmatched red ( ) brackets before running Auto-Order.');
+        return;
+      }
+
+      pushUndo();
+      clearTokenSelection();
+
+      function rankAtom(str) {
+        var t = str.trim();
+        if (t.charAt(0) === '(') return 1;
+        if (t.charAt(0) === '-') return 5;
+        if (/^(topic|language):/i.test(t)) return 2;
+        if (/^(stars|pushed|created|fork|in):/i.test(t)) return 4;
+        return 3;
+      }
+
+      var pos = 0;
+      function sortExpr() {
+        var orBranches = [sortAndChain()];
+        while (pos < queryTokens.length && queryTokens[pos] === 'OR') {
+          pos++;
+          orBranches.push(sortAndChain());
+        }
+        orBranches.sort(function(a, b) {
+          var sa = a.join(' '), sb = b.join(' ');
+          var ra = rankAtom(sa), rb = rankAtom(sb);
+          return ra !== rb ? ra - rb : sa.localeCompare(sb);
+        });
+        var merged = [];
+        orBranches.forEach(function(branch, idx) {
+          if (idx > 0) merged.push('OR');
+          branch.forEach(function(tok) { merged.push(tok); });
+        });
+        return merged;
+      }
+
+      function sortAndChain() {
+        var factors = [];
+        while (pos < queryTokens.length && queryTokens[pos] !== ')' && queryTokens[pos] !== 'OR') {
+          if (queryTokens[pos] === 'AND') { pos++; continue; }
+          if (queryTokens[pos] === '(') {
+            pos++;
+            var inner = sortExpr();
+            if (queryTokens[pos] === ')') pos++;
+            factors.push(['('].concat(inner).concat([')']));
+          } else {
+            factors.push([queryTokens[pos++]]);
+          }
+        }
+        factors.sort(function(a, b) {
+          var sa = a.join(' '), sb = b.join(' ');
+          var ra = rankAtom(sa), rb = rankAtom(sb);
+          return ra !== rb ? ra - rb : sa.localeCompare(sb);
+        });
+        var out = [];
+        factors.forEach(function(f) {
+          f.forEach(function(tok) { out.push(tok); });
+        });
+        return out;
+      }
+
+      queryTokens = sortExpr();
+      saveState();
+      renderChips();
+    }
+
+    function moveSelectedBlock(indices, targetIdx, insertAfter) {
+      var sorted = indices.slice().sort(function(a, b) { return a - b; });
+      if (sorted.indexOf(targetIdx) !== -1) return;
+      pushUndo();
+      var movedItems = sorted.map(function(i) { return queryTokens[i]; });
+      var countBeforeTarget = sorted.filter(function(i) { return i < targetIdx; }).length;
+      for (var k = sorted.length - 1; k >= 0; k--) {
+        queryTokens.splice(sorted[k], 1);
+      }
+      var insertPos = targetIdx - countBeforeTarget + (insertAfter ? 1 : 0);
+      insertPos = Math.max(0, Math.min(queryTokens.length, insertPos));
+      Array.prototype.splice.apply(queryTokens, [insertPos, 0].concat(movedItems));
+      selectedTokenIndices = [];
+      for (var m = 0; m < movedItems.length; m++) selectedTokenIndices.push(insertPos + m);
+      lastSelectedTokenIdx = selectedTokenIndices[selectedTokenIndices.length - 1];
+      saveState();
+      renderChips();
+    }
+
+    function mergeSingleIntoInlineOr(fromIdx, toIdx) {
+      if (fromIdx === toIdx) return;
+      pushUndo();
+      var movedVal = queryTokens[fromIdx];
+      var targetVal = queryTokens[toIdx];
+      queryTokens.splice(fromIdx, 1);
+      var adjTo = toIdx > fromIdx ? toIdx - 1 : toIdx;
+      var replacement = ['(', targetVal, 'OR', movedVal, ')'];
+      Array.prototype.splice.apply(queryTokens, [adjTo, 1].concat(replacement));
+      clearTokenSelection();
+      saveState();
+      renderChips();
+    }
+
+    function setupChipBoxMarquee(box) {
+      if (box.dataset.marqueeBound) return;
+      box.dataset.marqueeBound = '1';
+
+      box.addEventListener('mousedown', function(e) {
+        if (e.button !== 0 || e.target !== box) return;
+        var rect = box.getBoundingClientRect();
+        var startX = e.clientX - rect.left;
+        var startY = e.clientY - rect.top;
+        var moved = false;
+
+        var rubber = document.createElement('div');
+        rubber.className = 'marquee-box';
+        box.appendChild(rubber);
+
+        function onMove(ev) {
+          var curX = ev.clientX - rect.left;
+          var curY = ev.clientY - rect.top;
+          if (Math.abs(curX - startX) > 4 || Math.abs(curY - startY) > 4) moved = true;
+          if (!moved) return;
+
+          var left = Math.min(startX, curX);
+          var top = Math.min(startY, curY);
+          var width = Math.abs(curX - startX);
+          var height = Math.abs(curY - startY);
+          rubber.style.left = left + 'px';
+          rubber.style.top = top + 'px';
+          rubber.style.width = width + 'px';
+          rubber.style.height = height + 'px';
+
+          var selRect = {
+            left: rect.left + left,
+            top: rect.top + top,
+            right: rect.left + left + width,
+            bottom: rect.top + top + height
+          };
+          var nextSel = ev.ctrlKey || ev.metaKey ? selectedTokenIndices.slice() : [];
+          var chips = box.querySelectorAll('.q-chip');
+          for (var i = 0; i < chips.length; i++) {
+            var cr = chips[i].getBoundingClientRect();
+            var hit = !(cr.right < selRect.left || cr.left > selRect.right || cr.bottom < selRect.top || cr.top > selRect.bottom);
+            if (hit && nextSel.indexOf(i) === -1) nextSel.push(i);
+          }
+          selectedTokenIndices = nextSel;
+          for (var j = 0; j < chips.length; j++) {
+            chips[j].classList.toggle('is-selected', selectedTokenIndices.indexOf(j) !== -1);
+          }
+          updateSelectionControls();
+        }
+
+        function onUp() {
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('mouseup', onUp);
+          rubber.remove();
+          if (!moved) {
+            clearTokenSelection();
+            renderChips();
+            document.getElementById('tokenInput').focus();
+          }
+        }
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+      });
+    }
+    function renderChips() {
+      normalizeFlatTokens();
+      var box = document.getElementById('chipBox');
+      var input = document.getElementById('tokenInput');
+      setupChipBoxMarquee(box);
+
+      var existing = box.querySelectorAll('.q-chip, .chip-editor');
+      for (var i = 0; i < existing.length; i++) existing[i].remove();
+
+      selectedTokenIndices = selectedTokenIndices.filter(function(i) { return i >= 0 && i < queryTokens.length; });
+      updateSelectionControls();
+
+      var bracketInfo = computeFlatBracketInfo(queryTokens);
+
+      queryTokens.forEach(function(tok, idx) {
+        var chip = document.createElement('div');
+        var isParen = tok === '(' || tok === ')';
+        var isBool = tok === 'OR' || tok === 'AND';
+        var isOp = isParen || isBool;
+        var bMeta = bracketInfo[idx];
+
+        var cls = 'q-chip';
+        if (isParen) {
+          cls += ' is-paren';
+          if (bMeta && !bMeta.matched) cls += ' unmatched';
+        } else if (isBool) {
+          cls += ' is-op' + (tok === 'AND' ? ' is-and' : '');
+        } else if (tok.charAt(0) === '-') {
+          cls += ' neg';
+        }
+        if (selectedTokenIndices.indexOf(idx) !== -1) cls += ' is-selected';
+        chip.className = cls;
+        chip.draggable = true;
+
+        if (isParen && bMeta && bMeta.matched) {
+          var pPal = NEST_PALETTE[(bMeta.depth + 1) % NEST_PALETTE.length];
+          chip.style.borderColor = pPal.border;
+          chip.style.color = pPal.text;
+          chip.style.background = pPal.bg;
+        } else if (!isOp && bMeta && bMeta.kind === 'inside' && tok.charAt(0) !== '-') {
+          var inPal = NEST_PALETTE[(bMeta.depth + 1) % NEST_PALETTE.length];
+          chip.style.borderColor = inPal.border;
+          chip.style.color = inPal.text;
+          chip.style.background = inPal.bg;
+        }
+
+        chip.addEventListener('dragstart', function(e) {
+          if (selectedTokenIndices.indexOf(idx) !== -1 && selectedTokenIndices.length > 1) {
+            draggedIndices = selectedTokenIndices.slice();
+          } else {
+            draggedIndices = [idx];
+          }
+          var chips = box.querySelectorAll('.q-chip');
+          draggedIndices.forEach(function(di) { if (chips[di]) chips[di].style.opacity = '0.45'; });
+          e.dataTransfer.effectAllowed = 'move';
+        });
+
+        chip.addEventListener('dragend', function() {
+          var chips = box.querySelectorAll('.q-chip');
+          for (var c = 0; c < chips.length; c++) chips[c].style.opacity = '1';
+          draggedIndices = null;
+        });
+
+        chip.addEventListener('dragover', function(e) {
+          if (!draggedIndices || draggedIndices.indexOf(idx) !== -1) return;
+          e.preventDefault();
+          var rect = chip.getBoundingClientRect();
+          var ratio = (e.clientX - rect.left) / Math.max(1, rect.width);
+          var canMerge = draggedIndices.length === 1 && !isOp && queryTokens[draggedIndices] !== 'OR' &&
+            queryTokens[draggedIndices] !== 'AND' && queryTokens[draggedIndices] !== '(' && queryTokens[draggedIndices] !== ')';
+          chip.classList.remove('drop-before', 'drop-after', 'drop-target');
+          if (!canMerge || ratio < 0.25) chip.classList.add('drop-before');
+          else if (ratio > 0.75) chip.classList.add('drop-after');
+          else chip.classList.add('drop-target');
+        });
+
+        chip.addEventListener('dragleave', function() {
+          chip.classList.remove('drop-before', 'drop-after', 'drop-target');
+        });
+
+        chip.addEventListener('drop', function(e) {
+          var mode = chip.classList.contains('drop-before') ? 'before'
+            : (chip.classList.contains('drop-after') ? 'after' : 'merge');
+          chip.classList.remove('drop-before', 'drop-after', 'drop-target');
+          if (!draggedIndices || draggedIndices.indexOf(idx) !== -1) return;
+          e.preventDefault();
+          e.stopPropagation();
+          var moving = draggedIndices.slice();
+          draggedIndices = null;
+          if (mode === 'merge' && moving.length === 1) {
+            mergeSingleIntoInlineOr(moving, idx);
+          } else {
+            moveSelectedBlock(moving, idx, mode === 'after');
+          }
+        });
+
+        var lbl = document.createElement('span');
+        lbl.style.cursor = 'pointer';
+        lbl.textContent = tok;
+        lbl.title = isOp
+          ? 'Click to cycle OR / AND / ( / ) · Ctrl/Shift+Click or drag box to multi-select'
+          : 'Click to edit · Ctrl/Shift+Click or drag box to multi-select · Drag centre onto another term for ( A OR B )';
+        lbl.onclick = function(e) {
+          e.stopPropagation();
+          if (e.shiftKey && lastSelectedTokenIdx !== null) {
+            var lo = Math.min(lastSelectedTokenIdx, idx);
+            var hi = Math.max(lastSelectedTokenIdx, idx);
+            selectedTokenIndices = [];
+            for (var s = lo; s <= hi; s++) selectedTokenIndices.push(s);
+            renderChips();
+            return;
+          }
+          if (e.ctrlKey || e.metaKey) {
+            var pos = selectedTokenIndices.indexOf(idx);
+            if (pos === -1) selectedTokenIndices.push(idx);
+            else selectedTokenIndices.splice(pos, 1);
+            lastSelectedTokenIdx = idx;
+            renderChips();
+            return;
+          }
+          clearTokenSelection();
+          if (isOp) {
+            var cycle = ['OR', 'AND', '(', ')'];
+            pushUndo();
+            queryTokens[idx] = cycle[(cycle.indexOf(tok) + 1) % cycle.length];
+            saveState();
+            renderChips();
+          } else {
+            editToken(idx);
+          }
+        };
+        chip.appendChild(lbl);
+
+        var xBtn = document.createElement('span');
+        xBtn.className = 'x';
+        xBtn.textContent = '×';
+        xBtn.onclick = function(e) {
+          e.stopPropagation();
+          clearTokenSelection();
+          removeToken(idx);
+        };
+        chip.appendChild(xBtn);
+        box.insertBefore(chip, input);
+      });
+
+      updateEstimate();
+    }
+	
+    function saveNewPreset() {
+      var input = document.getElementById('newPresetInput');
+      var val = input.value.trim();
+      if (!val) return;
+      if (savedPresets.indexOf(val) === -1) {
+        savedPresets.push(val);
+        saveState();
+        renderPresets();
+      }
+      input.value = '';
+    }
+
+    function renderPresets() {
+      var row = document.getElementById('presetRow');
+      row.innerHTML = '';
+      if (!savedPresets.length) {
+        row.innerHTML = '<span style="font-size:0.78rem; color:#8b949e;">No saved tags yet.</span>';
+        return;
+      }
+      savedPresets.forEach(function(p, idx) {
+        var tokenToAdd = (p.indexOf(':') !== -1 || p.charAt(0) === '"' || p.charAt(0) === '(') ? p : 'topic:' + p;
+        var chip = document.createElement('div');
+        chip.className = 'preset-chip';
+
+        var addSpan = document.createElement('span');
+        addSpan.className = 'add';
+        addSpan.textContent = '+ ' + p;
+        addSpan.onclick = function() { addToken(tokenToAdd); };
+
+        var delSpan = document.createElement('span');
+        delSpan.className = 'del';
+        delSpan.textContent = '×';
+        delSpan.onclick = function() { savedPresets.splice(idx, 1); saveState(); renderPresets(); };
+
+        chip.appendChild(addSpan);
+        chip.appendChild(delSpan);
+        row.appendChild(chip);
+      });
+    }
+
+    function renderFindingsBar() {
+      var bar = document.getElementById('findingsBar');
+      var container = document.getElementById('findingsChips');
+      container.innerHTML = '';
+      if (!pinnedFindings.length) {
+        bar.classList.remove('active');
+        return;
+      }
+      bar.classList.add('active');
+      pinnedFindings.forEach(function(qual, idx) {
+        var chip = document.createElement('div');
+        chip.className = 'preset-chip';
+
+        var addSpan = document.createElement('span');
+        addSpan.className = 'add';
+        addSpan.textContent = '+ ' + qual;
+        addSpan.onclick = function() { addToken(qual); };
+
+        var delSpan = document.createElement('span');
+        delSpan.className = 'del';
+        delSpan.textContent = '×';
+        delSpan.onclick = function() { pinnedFindings.splice(idx, 1); saveState(); renderFindingsBar(); };
+
+        chip.appendChild(addSpan);
+        chip.appendChild(delSpan);
+        container.appendChild(chip);
+      });
+    }
+
+    function clearFindings() {
+      pushUndo();
+	  pinnedFindings = [];
+      saveState();
+      renderFindingsBar();
+    }
+    /* ---------------- SAVED SEARCHES, DNF PARSER & SEARCH ---------------- */
+    function saveCurrentSearch() {
+      var nameIn = document.getElementById('newSearchNameInput');
+      var name = nameIn.value.trim() || queryTokens.join(' ').slice(0, 32) || 'Untitled Search';
+      savedSearches.unshift({
+        id: 'srch_' + Date.now(),
+        name: name,
+        tokens: queryTokens.slice(),
+        sort: document.getElementById('sort').value,
+        pages: parseInt(document.getElementById('pages').value, 10) || 2,
+        filter: document.getElementById('filter').value
+      });
+      nameIn.value = '';
+      saveState();
+      renderSavedSearches();
+    }
+
+    function renderSavedSearches() {
+      var box = document.getElementById('savedSearchesContainer');
+      box.innerHTML = '';
+      if (!savedSearches.length) {
+        box.innerHTML = '<div style="font-size:0.78rem; color:#8b949e;">No saved searches yet.</div>';
+        return;
+      }
+      savedSearches.forEach(function(s, idx) {
+        var row = document.createElement('div');
+        row.className = 'side-item';
+
+        var nameSpan = document.createElement('span');
+        nameSpan.className = 'side-item-name';
+        nameSpan.title = s.tokens.join(' ');
+        nameSpan.textContent = s.name;
+        nameSpan.onclick = function() {
+          queryTokens = s.tokens.slice();
+          document.getElementById('sort').value = s.sort || 'updated';
+          document.getElementById('pages').value = s.pages || 2;
+          document.getElementById('filter').value = s.filter || '';
+          saveState();
+          renderChips();
+          runSearch();
+        };
+
+        var delBtn = document.createElement('button');
+        delBtn.className = 'btn-sec btn-xs btn-danger';
+        delBtn.textContent = '×';
+        delBtn.onclick = function() { savedSearches.splice(idx, 1); saveState(); renderSavedSearches(); };
+
+        row.appendChild(nameSpan);
+        row.appendChild(delBtn);
+        box.appendChild(row);
+      });
+    }
+
+    function expandQueries(expr) {
+      var tokens = [];
+      var i = 0;
+      while (i < expr.length) {
+        if (/\s/.test(expr[i])) { i++; continue; }
+        if (expr[i] === '(' || expr[i] === ')') { tokens.push(expr[i]); i++; continue; }
+        if (expr[i] === '"') {
+          var end = expr.indexOf('"', i + 1);
+          if (end === -1) end = expr.length - 1;
+          tokens.push(expr.slice(i, end + 1));
+          i = end + 1;
+          continue;
+        }
+        var start = i;
+        while (i < expr.length && !/[\s()]/.test(expr[i])) {
+          if (expr[i] === '"') {
+            var qEnd = expr.indexOf('"', i + 1);
+            i = qEnd === -1 ? expr.length : qEnd + 1;
+          } else {
+            i++;
+          }
+        }
+        tokens.push(expr.slice(start, i));
+      }
+
+      var pos = 0;
+      function parseOr() {
+        var branches = [parseAnd()];
+        while (pos < tokens.length && tokens[pos] === 'OR') {
+          pos++;
+          branches.push(parseAnd());
+        }
+        var out = [];
+        for (var b = 0; b < branches.length; b++) {
+          for (var k = 0; k < branches[b].length; k++) out.push(branches[b][k]);
+        }
+        return out;
+      }
+
+      function parseAnd() {
+        var acc = [''];
+        while (pos < tokens.length && tokens[pos] !== ')' && tokens[pos] !== 'OR') {
+          if (tokens[pos] === 'AND') { pos++; continue; }
+          var factor = parseAtom();
+          var next = [];
+          for (var a = 0; a < acc.length; a++) {
+            for (var f = 0; f < factor.length; f++) {
+              next.push((acc[a] + ' ' + factor[f]).trim());
+            }
+          }
+          acc = next;
+        }
+        return acc;
+      }
+
+      function parseAtom() {
+        if (tokens[pos] === '(') {
+          pos++;
+          var inner = parseOr();
+          if (tokens[pos] === ')') pos++;
+          return inner;
+        }
+        return [tokens[pos++]];
+      }
+
+      var rawList = parseOr().filter(function(s) { return s.length > 0; });
+      var unique = [];
+      for (var u = 0; u < rawList.length; u++) {
+        if (unique.indexOf(rawList[u]) === -1) unique.push(rawList[u]);
+      }
+      return unique;
+    }
+
+    function updateEstimate() {
+      var box = document.getElementById('estimateBox');
+      var expr = queryTokens.join(' ').trim();
+      if (!expr) {
+        box.className = 'warn-box ok';
+        box.textContent = 'Query empty — add a topic or keyword block above.';
+        return;
+      }
+      var branches = expandQueries(expr).length;
+      var pages = parseInt(document.getElementById('pages').value, 10) || 1;
+      var maxCalls = branches * pages;
+      var hasPat = document.getElementById('pat').value.trim().length > 0;
+      var limit = hasPat ? 30 : 10;
+
+      if (maxCalls > limit) {
+        box.className = 'warn-box warn';
+        box.innerHTML = '<b>Rate-Limit Warning:</b> Expands into <b>' + branches + ' branch(es) × ' + pages + ' page(s) = up to ' + maxCalls + ' API requests</b> (exceeds GitHub\'s <b>' + limit + ' req/min</b> limit). Lower Pages or trim an OR branch.';
+      } else {
+        box.className = 'warn-box ok';
+        box.innerHTML = 'Query plan: <b>' + branches + ' branch(es)</b> × up to ' + pages + ' page(s) = max <b>' + maxCalls + ' / ' + limit + '</b> search requests/min.';
+      }
+    }
+    function getVelocity(r) {
+      var ageDays = Math.max(1, (Date.now() - new Date(r.created_at).getTime()) / 86400000);
+      return r.stargazers_count / ageDays;
+    }
+
+    function sortRepos() {
+      var sort = document.getElementById('sort').value;
+      if (sort === 'updated') {
+        allRepos.sort(function(a, b) { return b.updated_at.localeCompare(a.updated_at); });
+      } else if (sort === 'stars') {
+        allRepos.sort(function(a, b) { return b.stargazers_count - a.stargazers_count; });
+      } else if (sort === 'created') {
+        allRepos.sort(function(a, b) { return b.created_at.localeCompare(a.created_at); });
+      } else if (sort === 'velocity') {
+        allRepos.sort(function(a, b) { return getVelocity(b) - getVelocity(a); });
+      }
+    }
+
+    async function runSearch() {
+      var pending = document.getElementById('tokenInput').value.trim();
+      if (pending) {
+        addToken(pending);
+        document.getElementById('tokenInput').value = '';
+      }
+
+      var pat = document.getElementById('pat').value.trim();
+      if (pat) localStorage.setItem('gh_pat', pat);
+      var rawExpr = queryTokens.join(' ').trim();
+      var status = document.getElementById('status');
+
+      if (!rawExpr) {
+        status.textContent = 'Add at least one query block first.';
+        return;
+      }
+
+      var subQueries = expandQueries(rawExpr);
+      var sortMode = document.getElementById('sort').value;
+      var apiSort = (sortMode === 'stars') ? 'stars' : 'updated';
+      var pages = parseInt(document.getElementById('pages').value, 10) || 1;
+      var seenIds = {};
+      allRepos = [];
+      document.getElementById('results').innerHTML = '';
+
+      var base = String.fromCharCode(104,116,116,112,115,58,47,47,97,112,105,46,103,105,116,104,117,98,46,99,111,109,47,115,101,97,114,99,104,47,114,101,112,111,115,105,116,111,114,105,101,115);
+
+      try {
+        for (var s = 0; s < subQueries.length; s++) {
+          var q = subQueries[s];
+          for (var p = 1; p <= pages; p++) {
+            status.textContent = 'Branch ' + (s + 1) + '/' + subQueries.length + ' ("' + q + '") — Page ' + p + '...';
+            var params = '?q=' + encodeURIComponent(q) + '&per_page=100&page=' + p + '&sort=' + apiSort;
+            var headers = { 'Accept': 'application/vnd.github+json' };
+            if (pat) headers['Authorization'] = 'Bearer ' + pat;
+
+            var res = await fetch(base + params, { headers: headers });
+            var data = await res.json();
+            if (!res.ok) {
+              status.textContent = 'GitHub API Error (' + res.status + '): ' + data.message;
+              return;
+            }
+            var items = data.items || [];
+            for (var k = 0; k < items.length; k++) {
+              var item = items[k];
+              item._foundFromQuery = rawExpr;
+              repoById[item.id] = item;
+              if (!seenIds[item.id]) {
+                seenIds[item.id] = true;
+                allRepos.push(item);
+              }
+            }
+            sortRepos();
+            renderRepos();
+            if (items.length < 100) break;
+          }
+        }
+        status.textContent = 'Done: ' + allRepos.length + ' unique repos merged across ' + subQueries.length + ' branch(es).';
+      } catch (err) {
+        status.textContent = 'Request failed: ' + err.message;
+      }
+    }
+    /* ---------------- TRIAGE, INLINE PREVIEW & CARD RENDERING ---------------- */
+    function markRepoSeen(r) {
+      var prev = triage[r.id] || {};
+      triage[r.id] = {
+        hidden: !!prev.hidden,
+        seen: true,
+        lastSeenPush: r.pushed_at || r.updated_at
+      };
+      saveState();
+    }
+
+    function toggleHideRepo(r) {
+      var prev = triage[r.id] || {};
+      triage[r.id] = {
+        hidden: !prev.hidden,
+        seen: prev.seen || false,
+        lastSeenPush: prev.lastSeenPush || ''
+      };
+      saveState();
+      renderRepos();
+    }
+
+    function findSimilarToRepo(r) {
+      var topics = (r.topics || []).filter(function(t) { return t !== 'llm' && t !== 'ai'; });
+      topics = topics.length ? topics.slice(0, 3) : (r.topics || []).slice(0, 3);
+      if (!topics.length) {
+        alert('This repository has no topic tags to match against.');
+        return;
+      }
+      queryTokens = topics.map(function(t) { return 'topic:' + t; });
+      queryTokens.push('stars:5..1000');
+      saveState();
+      renderChips();
+      runSearch();
+    }
+
+    async function fetchReadmeHtml(repoObj) {
+      if (readmeCache[repoObj.id]) return readmeCache[repoObj.id];
+      var pat = document.getElementById('pat').value.trim();
+      var apiRoot = String.fromCharCode(104,116,116,112,115,58,47,47,97,112,105,46,103,105,116,104,117,98,46,99,111,109,47,114,101,112,111,115,47);
+      var headers = { 'Accept': 'application/vnd.github.html+json' };
+      if (pat) headers['Authorization'] = 'Bearer ' + pat;
+
+      var res = await fetch(apiRoot + repoObj.full_name + '/readme', { headers: headers });
+      if (!res.ok) return '<p style="color:#8b949e;">No README found or unable to load (' + res.status + ').</p>';
+      var html = await res.text();
+      readmeCache[repoObj.id] = html;
+      saveState();
+      return html;
+    }
+
+    async function toggleInlinePreview(r) {
+      markRepoSeen(r);
+      if (openInlineReadmes[r.id]) {
+        delete openInlineReadmes[r.id];
+        renderRepos();
+        return;
+      }
+      openInlineReadmes[r.id] = '<p style="color:#8b949e;">Loading README preview...</p>';
+      renderRepos();
+      openInlineReadmes[r.id] = await fetchReadmeHtml(r);
+      renderRepos();
+    }
+    function renderRepos() {
+      var term = document.getElementById('filter').value.toLowerCase();
+      var showHidden = document.getElementById('showHiddenChk').checked;
+      var container = document.getElementById('results');
+      container.innerHTML = '';
+
+      var filtered = allRepos.filter(function(r) {
+        var tr = triage[r.id] || {};
+        if (tr.hidden && !showHidden) return false;
+        var text = r.full_name + ' ' + (r.description || '') + ' ' + (r.topics || []).join(' ');
+        return text.toLowerCase().indexOf(term) !== -1;
+      });
+
+      filtered.forEach(function(r) {
+        var tr = triage[r.id] || {};
+        var isUpdated = tr.seen && tr.lastSeenPush && (r.pushed_at > tr.lastSeenPush);
+        var card = document.createElement('div');
+        card.className = 'repo' + ((tr.seen && !isUpdated) ? ' seen' : '');
+
+        var topRow = document.createElement('div');
+        topRow.className = 'repo-top';
+
+        var titleWrap = document.createElement('div');
+        var link = document.createElement('a');
+        link.className = 'repo-link';
+        link.href = r.html_url;
+        link.target = '_blank';
+        link.textContent = r.full_name;
+        link.onclick = function() { markRepoSeen(r); renderRepos(); };
+        titleWrap.appendChild(link);
+
+        if (isUpdated) {
+          var upd = document.createElement('span');
+          upd.className = 'badge-upd';
+          upd.textContent = 'Updated';
+          titleWrap.appendChild(upd);
+        }
+
+        var actions = document.createElement('div');
+        actions.className = 'repo-actions';
+
+        var btnPrev = document.createElement('button');
+        btnPrev.className = 'btn-sec btn-xs';
+        btnPrev.textContent = openInlineReadmes[r.id] ? 'Hide Preview' : 'Preview';
+        btnPrev.onclick = function() { toggleInlinePreview(r); };
+
+        var btnShowTabs = document.createElement('button');
+        btnShowTabs.className = 'btn-xs';
+        btnShowTabs.textContent = 'Show in Tabs';
+        btnShowTabs.onclick = function() {
+          addRepoToGroup(tabGroups, lastTabGroupId, r);
+          markRepoSeen(r);
+          openTabOverlay(lastTabGroupId, r.id);
+        };
+
+        var btnAddTabs = document.createElement('button');
+        btnAddTabs.className = 'btn-sec btn-xs pop-trigger';
+        btnAddTabs.textContent = 'Add to Tabs';
+        btnAddTabs.onclick = function(e) {
+          e.stopPropagation();
+          addRepoToGroup(tabGroups, lastTabGroupId, r);
+          markRepoSeen(r);
+          activePopover = (activePopover && activePopover.repoId === r.id && activePopover.kind === 'tabs')
+            ? null : { repoId: r.id, kind: 'tabs' };
+          renderRepos();
+        };
+
+        var btnBm = document.createElement('button');
+        btnBm.className = 'btn-sec btn-xs pop-trigger';
+        var isBm = isRepoInAnyGroup(bookmarkGroups, r.id);
+        btnBm.textContent = isBm ? '★ Bookmarked' : '☆ Bookmark';
+        if (isBm) btnBm.style.color = '#e3b341';
+        btnBm.onclick = function(e) {
+          e.stopPropagation();
+          addRepoToGroup(bookmarkGroups, lastBmGroupId, r);
+          markRepoSeen(r);
+          activePopover = (activePopover && activePopover.repoId === r.id && activePopover.kind === 'bm')
+            ? null : { repoId: r.id, kind: 'bm' };
+          renderRepos();
+        };
+
+        var btnSim = document.createElement('button');
+        btnSim.className = 'btn-sec btn-xs';
+        btnSim.textContent = 'Similar';
+        btnSim.onclick = function() { findSimilarToRepo(r); };
+
+        var btnHide = document.createElement('button');
+        btnHide.className = 'btn-sec btn-xs btn-danger';
+        btnHide.textContent = tr.hidden ? 'Unhide' : 'Hide';
+        btnHide.onclick = function() { toggleHideRepo(r); };
+
+        actions.appendChild(btnPrev);
+        actions.appendChild(btnShowTabs);
+        actions.appendChild(btnAddTabs);
+        actions.appendChild(btnBm);
+        actions.appendChild(btnSim);
+		 if (tr.seen) {
+		   var btnUnseen = document.createElement('button');
+		   btnUnseen.className = 'btn-sec btn-xs';
+		   btnUnseen.textContent = 'Unseen';
+		   btnUnseen.title = 'Mark repository as unviewed';
+		   btnUnseen.onclick = function() {
+			 delete triage[r.id];
+			 saveState();
+			 renderRepos();
+		   };
+		   actions.appendChild(btnUnseen);
+		 }
+        actions.appendChild(btnHide);
+
+        if (activePopover && activePopover.repoId === r.id) {
+          actions.appendChild(buildGroupPopover(r, activePopover.kind));
+        }
+
+        topRow.appendChild(titleWrap);
+        topRow.appendChild(actions);
+        card.appendChild(topRow);
+        var desc = document.createElement('div');
+        desc.style.marginTop = '5px';
+        highlightTextToEl(desc, r.description || 'No description');
+        card.appendChild(desc);
+
+        var tagWrap = document.createElement('div');
+        (r.topics || []).forEach(function(t) {
+          var qStr = 'topic:' + t;
+          var span = document.createElement('span');
+          span.className = 'tag' + (isQualifierInQuery(qStr) ? ' tag-query-match' : '');
+          span.textContent = t;
+          span.title = 'Click to pin topic:' + t + ' (Shift+Click to add to query immediately)';
+          span.onclick = function(e) {
+            if (e.shiftKey) addToken(qStr);
+            else pinMainFinding(qStr);
+          };
+          tagWrap.appendChild(span);
+        });
+        card.appendChild(tagWrap);
+
+        var meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = '★ ' + r.stargazers_count + ' (' + getVelocity(r).toFixed(1) + '/day) | Created: ' + r.created_at.slice(0, 10) + ' | Pushed: ' + (r.pushed_at || r.updated_at).slice(0, 10) + ' | Lang: ' + (r.language || 'N/A');
+        card.appendChild(meta);
+
+        if (openInlineReadmes[r.id]) {
+          var inlineBox = document.createElement('div');
+          inlineBox.className = 'inline-readme';
+          var bar = document.createElement('div');
+          bar.className = 'inline-readme-bar';
+          var barLbl = document.createElement('span');
+          barLbl.textContent = 'README Preview';
+          bar.appendChild(barLbl);
+
+          var barBtns = document.createElement('div');
+          barBtns.style.cssText = 'display:flex;gap:6px;';
+          var expBtn = document.createElement('button');
+          expBtn.className = 'btn-xs';
+          expBtn.textContent = 'Show in Tabs';
+          expBtn.onclick = function() {
+            addRepoToGroup(tabGroups, lastTabGroupId, r);
+            openTabOverlay(lastTabGroupId, r.id);
+          };
+          barBtns.appendChild(expBtn);
+          bar.appendChild(barBtns);
+
+          var body = document.createElement('div');
+          body.className = 'readme-body';
+          body.innerHTML = highlightHtmlString(openInlineReadmes[r.id]);
+
+          inlineBox.appendChild(bar);
+          inlineBox.appendChild(body);
+          card.appendChild(inlineBox);
+        }
+
+        container.appendChild(card);
+      });
+    }
+
+    /* ---------------- TAB GROUPS & BOOKMARK GROUPS ---------------- */
+    var tabGroupOrder = Object.keys(tabGroups);
+    var bookmarkGroupOrder = Object.keys(bookmarkGroups);
+    var activeTabGroupIds = Object.keys(tabGroups);
+    var focusedOverlayRepoId = null;
+    var groupCommonalityCfg = {};
+    var draggedCardState = null;
+
+    function isRepoInAnyGroup(groupMap, repoId) {
+      var ids = Object.keys(groupMap);
+      for (var i = 0; i < ids.length; i++) {
+        var items = groupMap[ids[i]].items || [];
+        for (var j = 0; j < items.length; j++) {
+          if (items[j].id === repoId) return true;
+        }
+      }
+      return false;
+    }
+
+    function isRepoInGroup(groupMap, gid, repoId) {
+      var g = groupMap[gid];
+      if (!g) return false;
+      return g.items.some(function(it) { return it.id === repoId; });
+    }
+
+    function addRepoToGroup(groupMap, gid, r) {
+      pushUndo();
+	  var g = groupMap[gid];
+      if (!g) return;
+      if (!isRepoInGroup(groupMap, gid, r.id)) {
+        g.items.push({
+          id: r.id,
+          full_name: r.full_name,
+          html_url: r.html_url,
+          description: r.description || '',
+          stargazers_count: r.stargazers_count,
+          language: r.language || 'N/A',
+          created_at: r.created_at,
+          pushed_at: r.pushed_at || r.updated_at,
+          updated_at: r.updated_at,
+          topics: (r.topics || []).slice(),
+          foundFromQuery: r._foundFromQuery || r.foundFromQuery || queryTokens.join(' ')
+        });
+      }
+      g.updatedAt = Date.now();
+      if (groupMap === tabGroups) {
+        lastTabGroupId = gid;
+        if (activeTabGroupIds.indexOf(gid) === -1) activeTabGroupIds.unshift(gid);
+      } else {
+        lastBmGroupId = gid;
+      }
+      saveState();
+      renderSidebars();
+      updateTopTabCount();
+    }
+
+    function removeRepoFromGroup(groupMap, gid, repoId) {
+      pushUndo();
+	  var g = groupMap[gid];
+      if (!g) return;
+      g.items = g.items.filter(function(it) { return it.id !== repoId; });
+      saveState();
+      renderSidebars();
+      updateTopTabCount();
+    }
+    function buildGroupPopover(r, kind) {
+      var isTabs = kind === 'tabs';
+      var gMap = isTabs ? tabGroups : bookmarkGroups;
+
+      var pop = document.createElement('div');
+      pop.className = 'bm-popover';
+      pop.onclick = function(e) { e.stopPropagation(); };
+
+      var head = document.createElement('div');
+      head.style.cssText = 'display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;color:#8b949e;';
+      var headLbl = document.createElement('span');
+      headLbl.textContent = isTabs ? 'Add to Tab Group...' : 'Save to Bookmark Group...';
+      head.appendChild(headLbl);
+
+      var sortSel = document.createElement('select');
+      sortSel.style.cssText = 'padding:2px 5px;font-size:0.75rem;';
+      sortSel.innerHTML = '<option value="recent">Recent</option><option value="az">A–Z</option><option value="count">Most Items</option>';
+      sortSel.value = popoverSort;
+      sortSel.onchange = function() { popoverSort = sortSel.value; renderRepos(); };
+      head.appendChild(sortSel);
+      pop.appendChild(head);
+
+      var scroll = document.createElement('div');
+      scroll.className = 'bm-list-scroll';
+
+      var ids = Object.keys(gMap);
+      ids.sort(function(a, b) {
+        if (popoverSort === 'az') return gMap[a].name.localeCompare(gMap[b].name);
+        if (popoverSort === 'count') return gMap[b].items.length - gMap[a].items.length;
+        return (gMap[b].updatedAt || 0) - (gMap[a].updatedAt || 0);
+      });
+
+      ids.forEach(function(gid) {
+        var row = document.createElement('label');
+        row.className = 'bm-row';
+
+        var chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.checked = isRepoInGroup(gMap, gid, r.id);
+        chk.onchange = function() {
+          if (chk.checked) addRepoToGroup(gMap, gid, r);
+          else removeRepoFromGroup(gMap, gid, r.id);
+          renderRepos();
+        };
+
+        var nameSpan = document.createElement('span');
+        nameSpan.style.flex = '1';
+        nameSpan.textContent = gMap[gid].name;
+
+        var cnt = document.createElement('span');
+        cnt.className = 'badge-count';
+        cnt.textContent = gMap[gid].items.length;
+
+        row.appendChild(chk);
+        row.appendChild(nameSpan);
+        row.appendChild(cnt);
+        scroll.appendChild(row);
+      });
+      pop.appendChild(scroll);
+
+      var newRow = document.createElement('div');
+      newRow.style.cssText = 'display:flex;gap:4px;border-top:1px solid #30363d;padding-top:8px;';
+      var newIn = document.createElement('input');
+      newIn.type = 'text';
+      newIn.placeholder = isTabs ? '+ New tab group...' : '+ New bookmark group...';
+      newIn.style.cssText = 'flex:1;padding:4px 7px;font-size:0.78rem;';
+
+      var newBtn = document.createElement('button');
+      newBtn.className = 'btn-xs';
+      newBtn.textContent = 'Create';
+      function createAndAdd() {
+        var nm = newIn.value.trim();
+        if (!nm) return;
+        var nid = (isTabs ? 'tabs_' : 'bm_') + Date.now();
+        gMap[nid] = { id: nid, name: nm, updatedAt: Date.now(), items: [] };
+        addRepoToGroup(gMap, nid, r);
+        renderRepos();
+      }
+      newIn.onkeydown = function(e) { if (e.key === 'Enter') createAndAdd(); };
+      newBtn.onclick = createAndAdd;
+
+      newRow.appendChild(newIn);
+      newRow.appendChild(newBtn);
+      pop.appendChild(newRow);
+      return pop;
+    }
+
+    function createTabGroupFromInput() {
+      var inp = document.getElementById('newTabGroupInput');
+      var nm = inp.value.trim();
+      if (!nm) return;
+      var nid = 'tabs_' + Date.now();
+      tabGroups[nid] = { id: nid, name: nm, updatedAt: Date.now(), items: [] };
+      lastTabGroupId = nid;
+      activeTabGroupIds.unshift(nid);
+      inp.value = '';
+      saveState();
+      renderSidebars();
+    }
+
+    function createBmGroupFromInput() {
+      var inp = document.getElementById('newBmGroupInput');
+      var nm = inp.value.trim();
+      if (!nm) return;
+      var nid = 'bm_' + Date.now();
+      bookmarkGroups[nid] = { id: nid, name: nm, updatedAt: Date.now(), items: [] };
+      lastBmGroupId = nid;
+      inp.value = '';
+      saveState();
+      renderSidebars();
+    }
+    function renderSidebars() {
+      renderGroupsSidebars();
+    }
+
+    function renderGroupsSidebars() {
+      var tBox = document.getElementById('tabGroupsContainer');
+      tBox.innerHTML = '';
+      Object.keys(tabGroups).forEach(function(gid) {
+        var g = tabGroups[gid];
+        var row = document.createElement('div');
+        row.className = 'side-item';
+
+        var nm = document.createElement('span');
+        nm.className = 'side-item-name';
+        nm.textContent = g.name;
+        nm.onclick = function() { openTabOverlay(gid, null); };
+
+        var cnt = document.createElement('span');
+        cnt.className = 'badge-count';
+        cnt.textContent = g.items.length;
+
+        var openBtn = document.createElement('button');
+        openBtn.className = 'btn-sec btn-xs';
+        openBtn.textContent = 'Open';
+        openBtn.onclick = function() { openTabOverlay(gid, null); };
+
+        row.appendChild(nm);
+        row.appendChild(cnt);
+        row.appendChild(openBtn);
+
+        if (gid !== 'tabs_default') {
+          var delBtn = document.createElement('button');
+          delBtn.className = 'btn-sec btn-xs btn-danger';
+          delBtn.textContent = '×';
+          delBtn.onclick = function() {
+            delete tabGroups[gid];
+            activeTabGroupIds = activeTabGroupIds.filter(function(x) { return x !== gid; });
+            if (lastTabGroupId === gid) lastTabGroupId = 'tabs_default';
+            saveState();
+            renderSidebars();
+            updateTopTabCount();
+          };
+          row.appendChild(delBtn);
+        }
+        tBox.appendChild(row);
+      });
+
+      var bBox = document.getElementById('bookmarkGroupsContainer');
+      bBox.innerHTML = '';
+      Object.keys(bookmarkGroups).forEach(function(bid) {
+        var bg = bookmarkGroups[bid];
+        var row = document.createElement('div');
+        row.className = 'side-item';
+
+        var nm = document.createElement('span');
+        nm.className = 'side-item-name';
+        nm.textContent = bg.name;
+        nm.title = 'Load "' + bg.name + '" as an active Tab Group';
+        nm.onclick = function() { loadBookmarkGroupAsTabGroup(bid); };
+
+        var cnt = document.createElement('span');
+        cnt.className = 'badge-count';
+        cnt.textContent = bg.items.length;
+
+        var loadBtn = document.createElement('button');
+        loadBtn.className = 'btn-sec btn-xs';
+        loadBtn.textContent = 'Open';
+        loadBtn.onclick = function() { loadBookmarkGroupAsTabGroup(bid); };
+
+        row.appendChild(nm);
+        row.appendChild(cnt);
+        row.appendChild(loadBtn);
+
+        if (bid !== 'bm_default') {
+          var delBtn = document.createElement('button');
+          delBtn.className = 'btn-sec btn-xs btn-danger';
+          delBtn.textContent = '×';
+          delBtn.onclick = function() {
+            delete bookmarkGroups[bid];
+            if (lastBmGroupId === bid) lastBmGroupId = 'bm_default';
+            saveState();
+            renderSidebars();
+          };
+          row.appendChild(delBtn);
+        }
+        bBox.appendChild(row);
+      });
+    }
+
+    function loadBookmarkGroupAsTabGroup(bmId) {
+      var bg = bookmarkGroups[bmId];
+      if (!bg) return;
+      var tid = 'tabs_from_' + bmId;
+      tabGroups[tid] = {
+        id: tid,
+        name: bg.name,
+        updatedAt: Date.now(),
+        items: bg.items.map(function(it) { return Object.assign({}, it); })
+      };
+      lastTabGroupId = tid;
+      if (activeTabGroupIds.indexOf(tid) === -1) activeTabGroupIds.unshift(tid);
+      saveState();
+      renderSidebars();
+      updateTopTabCount();
+      openTabOverlay(tid, null);
+    }
+
+    function updateTopTabCount() {
+      var total = 0;
+      Object.keys(tabGroups).forEach(function(gid) { total += tabGroups[gid].items.length; });
+      document.getElementById('topTabCount').textContent = total;
+    }
+
+    /* ---------------- FROSTED OVERLAY, ZOOM, PAN & COMMONALITY ---------------- */
+    function enableDragPan(el) {
+      if (!el || el.dataset.panBound) return;
+      el.dataset.panBound = '1';
+      var isDown = false, startX = 0, startY = 0, scrollL = 0, scrollT = 0;
+      el.addEventListener('mousedown', function(e) {
+        if (e.button !== 0) return;
+        if (e.target.closest('button, input, select, a, .tag, .comp-card-top')) return;
+        isDown = true;
+        el.classList.add('grabbing');
+        startX = e.clientX;
+        startY = e.clientY;
+        scrollL = el.scrollLeft;
+        scrollT = el.scrollTop;
+      });
+      window.addEventListener('mousemove', function(e) {
+        if (!isDown) return;
+        e.preventDefault();
+        el.scrollLeft = scrollL - (e.clientX - startX);
+        el.scrollTop = scrollT - (e.clientY - startY);
+      });
+      window.addEventListener('mouseup', function() {
+        isDown = false;
+        el.classList.remove('grabbing');
+      });
+    }
+
+    function setupCanvasInteractions() {
+      var ov = document.getElementById('tabOverlay');
+      var canvas = document.getElementById('overlayCanvas');
+      enableDragPan(canvas);
+      ov.addEventListener('wheel', function(e) {
+        if (e.ctrlKey) {
+          e.preventDefault();
+          adjustZoom(e.deltaY < 0 ? 10 : -10);
+        }
+      }, { passive: false });
+    }
+
+    function analyzeGroupCommonality(items) {
+      var counts = {};
+      var meta = {};
+      var total = items.length;
+      items.forEach(function(it) {
+        var seen = {};
+        (it.topics || []).forEach(function(t) {
+          var k = 'topic:' + t;
+          if (!seen[k]) { seen[k] = true; counts[k] = (counts[k] || 0) + 1; meta[k] = 'topic'; }
+        });
+        if (it.language && it.language !== 'N/A') {
+          var lk = 'language:' + it.language.toLowerCase();
+          if (!seen[lk]) { seen[lk] = true; counts[lk] = (counts[lk] || 0) + 1; meta[lk] = 'language'; }
+        }
+        var words = (it.description || '').toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').split(/\s+/);
+        words.forEach(function(w) {
+          if (w.length >= 4 && !STOP_WORDS[w] && !seen[w]) {
+            seen[w] = true;
+            counts[w] = (counts[w] || 0) + 1;
+            meta[w] = 'keyword';
+          }
+        });
+      });
+      var tierLookup = {};
+      var entries = [];
+      Object.keys(counts).forEach(function(k) {
+        var tier = 'some';
+        if (total >= 2 && counts[k] === total) tier = 'all';
+        else if (total >= 2 && counts[k] >= Math.ceil(total / 2)) tier = 'most';
+        tierLookup[k] = tier;
+        entries.push({ qualifier: k, type: meta[k], tier: tier, count: counts[k] });
+      });
+      return { tierLookup: tierLookup, entries: entries };
+    }
+
+	
+    function openTabOverlay(groupId, focusRepoId) {
+      if (groupId && activeTabGroupIds.indexOf(groupId) === -1) {
+        activeTabGroupIds.unshift(groupId);
+        saveState();
+      }
+      if (!activeTabGroupIds.length) activeTabGroupIds = Object.keys(tabGroups);
+      focusedOverlayRepoId = focusRepoId || null;
+      document.getElementById('tabOverlay').classList.add('open');
+      renderOverlay();
+    }
+
+    function closeOverlay() {
+      document.getElementById('tabOverlay').classList.remove('open');
+      renderRepos();
+    }
+
+    function adjustZoom(delta) {
+      var prev = overlayZoom;
+      var next = Math.max(20, Math.min(175, prev + delta));
+      if ((prev < 100 && next > 100) || (prev > 100 && next < 100)) next = 100;
+      overlayZoom = next;
+      document.getElementById('zoomLabel').textContent = overlayZoom + '%';
+      renderOverlay();
+    }
+
+    function resetZoom() {
+      overlayZoom = 100;
+      document.getElementById('zoomLabel').textContent = '100%';
+      renderOverlay();
+    }
+
+    function addToStaging(qualStr, sourceGroupId) {
+      var v = qualStr.trim();
+      if (!v) return;
+      var existing = null;
+      for (var i = 0; i < overlayStagedFindings.length; i++) {
+        if (typeof overlayStagedFindings[i] === 'string') {
+          overlayStagedFindings[i] = { qualifier: overlayStagedFindings[i], sources: [] };
+        }
+        if (overlayStagedFindings[i].qualifier === v) { existing = overlayStagedFindings[i]; break; }
+      }
+      if (!existing) {
+        existing = { qualifier: v, sources: [] };
+        overlayStagedFindings.push(existing);
+      }
+      if (sourceGroupId && existing.sources.indexOf(sourceGroupId) === -1) {
+        existing.sources.push(sourceGroupId);
+      }
+    }
+
+    function unstageGroupItems(groupId) {
+      pushUndo();
+      overlayStagedFindings = overlayStagedFindings.filter(function(item) {
+        if (typeof item === 'string') return true;
+        item.sources = (item.sources || []).filter(function(s) { return s !== groupId; });
+        return item.sources.length > 0;
+      });
+      renderOverlay();
+    }
+
+    function renderOverlayStagingTray() {
+      var tray = document.getElementById('overlayStagingTray');
+      tray.innerHTML = '';
+
+      var lbl = document.createElement('strong');
+      lbl.style.color = '#79c0ff';
+      lbl.textContent = 'Staged Findings:';
+      tray.appendChild(lbl);
+
+      if (!overlayStagedFindings.length) {
+        var hint = document.createElement('span');
+        hint.style.color = '#8b949e';
+        hint.textContent = 'Click any tag/language pill, highlight README text, or click "+ Stage Matching" to collect qualifiers here.';
+        tray.appendChild(hint);
+        return;
+      }
+
+      overlayStagedFindings.forEach(function(entry, idx) {
+        var item = typeof entry === 'string' ? { qualifier: entry, sources: [] } : entry;
+        var chip = document.createElement('div');
+        chip.className = 'preset-chip';
+        if (item.sources && item.sources.length) {
+          var rings = item.sources.map(function(gid, rIdx) {
+            return '0 0 0 ' + ((rIdx + 1) * 2) + 'px ' + getGroupColor(gid);
+          });
+          chip.style.boxShadow = rings.join(', ');
+          chip.style.margin = '2px ' + (item.sources.length * 2 + 2) + 'px';
+          chip.title = 'Found in: ' + item.sources.map(function(gid) { return tabGroups[gid] ? tabGroups[gid].name : gid; }).join(' → ');
+        }
+        var txt = document.createElement('span');
+        txt.className = 'add';
+        txt.textContent = item.qualifier;
+        var del = document.createElement('span');
+        del.className = 'del';
+        del.textContent = '×';
+        del.onclick = function() {
+          pushUndo();
+          overlayStagedFindings.splice(idx, 1);
+          renderOverlayStagingTray();
+        };
+        chip.appendChild(txt);
+        chip.appendChild(del);
+        tray.appendChild(chip);
+      });
+
+      var clearBtn = document.createElement('button');
+      clearBtn.className = 'btn-sec btn-xs btn-danger';
+      clearBtn.style.marginLeft = 'auto';
+      clearBtn.textContent = 'Clear All';
+      clearBtn.onclick = function() {
+        pushUndo();
+        overlayStagedFindings = [];
+        renderOverlayStagingTray();
+      };
+      tray.appendChild(clearBtn);
+
+      var sendBtn = document.createElement('button');
+      sendBtn.className = 'btn-xs';
+      sendBtn.textContent = 'Send to Search Bar (' + overlayStagedFindings.length + ')';
+      sendBtn.onclick = function() {
+        pushUndo();
+        overlayStagedFindings.forEach(function(entry) {
+          var q = typeof entry === 'string' ? entry : entry.qualifier;
+          if (pinnedFindings.indexOf(q) === -1) pinnedFindings.push(q);
+        });
+        overlayStagedFindings = [];
+        saveState();
+        renderFindingsBar();
+        renderOverlayStagingTray();
+      };
+      tray.appendChild(sendBtn);
+    }
+    function renderOverlay() {
+      renderOverlayStagingTray();
+      var canvas = document.getElementById('overlayCanvas');
+      canvas.innerHTML = '';
+
+      activeTabGroupIds.forEach(function(gid, gIdx) {
+        var grp = tabGroups[gid];
+        if (!grp) return;
+        var gColor = getGroupColor(gid);
+
+        var shelf = document.createElement('div');
+        shelf.className = 'shelf';
+        shelf.style.borderColor = gColor + '66';
+        shelf.style.background = 'linear-gradient(180deg, ' + gColor + '14 0%, rgba(22,27,34,0.68) 100%)';
+
+        var head = document.createElement('div');
+        head.className = 'shelf-head';
+
+        var leftHead = document.createElement('div');
+        leftHead.style.cssText = 'display:flex;align-items:center;gap:8px;';
+        var dot = document.createElement('span');
+        dot.style.cssText = 'width:10px;height:10px;border-radius:50%;display:inline-block;background:' + gColor + ';';
+        var nm = document.createElement('strong');
+        nm.textContent = grp.name;
+        var cnt = document.createElement('span');
+        cnt.className = 'badge-count';
+        cnt.textContent = grp.items.length + ' tabs';
+        leftHead.appendChild(dot);
+        leftHead.appendChild(nm);
+        leftHead.appendChild(cnt);
+
+        var rightHead = document.createElement('div');
+        rightHead.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;';
+
+        var bmSel = document.createElement('select');
+        bmSel.style.cssText = 'padding:3px 6px;font-size:0.78rem;';
+        Object.keys(bookmarkGroups).forEach(function(bid) {
+          var o = document.createElement('option');
+          o.value = bid;
+          o.textContent = bookmarkGroups[bid].name;
+          bmSel.appendChild(o);
+        });
+
+        var saveBmBtn = document.createElement('button');
+        saveBmBtn.className = 'btn-sec btn-xs';
+        saveBmBtn.textContent = 'Save Shelf to Bookmarks';
+        saveBmBtn.onclick = function() {
+          var dest = bmSel.value;
+          grp.items.forEach(function(it) { addRepoToGroup(bookmarkGroups, dest, it); });
+          saveBmBtn.textContent = 'Saved!';
+          setTimeout(function() { saveBmBtn.textContent = 'Save Shelf to Bookmarks'; }, 1200);
+        };
+
+        var upBtn = document.createElement('button');
+        upBtn.className = 'btn-sec btn-xs';
+        upBtn.textContent = '↑';
+        upBtn.disabled = gIdx === 0;
+        upBtn.onclick = function() {
+          pushUndo();
+          var tmp = activeTabGroupIds[gIdx - 1];
+          activeTabGroupIds[gIdx - 1] = gid;
+          activeTabGroupIds[gIdx] = tmp;
+          saveState();
+          renderOverlay();
+        };
+
+        var dnBtn = document.createElement('button');
+        dnBtn.className = 'btn-sec btn-xs';
+        dnBtn.textContent = '↓';
+        dnBtn.disabled = gIdx === activeTabGroupIds.length - 1;
+        dnBtn.onclick = function() {
+          pushUndo();
+          var tmp = activeTabGroupIds[gIdx + 1];
+          activeTabGroupIds[gIdx + 1] = gid;
+          activeTabGroupIds[gIdx] = tmp;
+          saveState();
+          renderOverlay();
+        };
+
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 'btn-sec btn-xs btn-danger';
+        closeBtn.textContent = 'Close Shelf';
+        closeBtn.onclick = function() {
+          pushUndo();
+          activeTabGroupIds.splice(gIdx, 1);
+          saveState();
+          updateTopTabCount();
+          renderOverlay();
+        };
+
+        rightHead.appendChild(bmSel);
+        rightHead.appendChild(saveBmBtn);
+        rightHead.appendChild(upBtn);
+        rightHead.appendChild(dnBtn);
+        rightHead.appendChild(closeBtn);
+        head.appendChild(leftHead);
+        head.appendChild(rightHead);
+        shelf.appendChild(head);
+
+        var analysis = analyzeGroupCommonality(grp.items);
+        if (analysis.entries.length && grp.items.length >= 2) {
+          if (!groupCommonalityCfg[gid]) {
+            groupCommonalityCfg[gid] = {
+              tiers: { all: true, most: true, some: false },
+              types: { topic: true, language: true, keyword: false }
+            };
+          }
+          var cfg = groupCommonalityCfg[gid];
+          var commBar = document.createElement('div');
+          commBar.className = 'shelf-findings';
+          var commLbl = document.createElement('strong');
+          commLbl.style.color = '#c9d1d9';
+          commLbl.textContent = 'Commonality:';
+          commBar.appendChild(commLbl);
+
+          [{ k: 'all', t: 'All Share' }, { k: 'most', t: 'Most Share' }, { k: 'some', t: 'Some' }].forEach(function(td) {
+            var lbl = document.createElement('label');
+            lbl.style.cssText = 'display:inline-flex;align-items:center;gap:4px;cursor:pointer;margin-left:6px;';
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = !!cfg.tiers[td.k];
+            cb.onchange = function() { cfg.tiers[td.k] = cb.checked; renderOverlay(); };
+            lbl.appendChild(cb);
+            lbl.appendChild(document.createTextNode(td.t));
+            commBar.appendChild(lbl);
+          });
+
+          [{ k: 'topic', t: 'Topics' }, { k: 'language', t: 'Languages' }, { k: 'keyword', t: 'Keywords' }].forEach(function(tp) {
+            var lbl = document.createElement('label');
+            lbl.style.cssText = 'display:inline-flex;align-items:center;gap:4px;cursor:pointer;margin-left:6px;';
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = !!cfg.types[tp.k];
+            cb.onchange = function() { cfg.types[tp.k] = cb.checked; renderOverlay(); };
+            lbl.appendChild(cb);
+            lbl.appendChild(document.createTextNode(tp.t));
+            commBar.appendChild(lbl);
+          });
+
+          var unstageGrpBtn = document.createElement('button');
+          unstageGrpBtn.className = 'btn-sec btn-xs';
+          unstageGrpBtn.style.marginLeft = 'auto';
+          unstageGrpBtn.textContent = 'Unstage Group Picks';
+          unstageGrpBtn.onclick = function() { unstageGroupItems(gid); };
+          commBar.appendChild(unstageGrpBtn);
+
+          var stageAutoBtn = document.createElement('button');
+          stageAutoBtn.className = 'btn-xs';
+          stageAutoBtn.textContent = '+ Stage Matching';
+          stageAutoBtn.onclick = function() {
+            pushUndo();
+            analysis.entries.forEach(function(ent) {
+              if (cfg.tiers[ent.tier] && cfg.types[ent.type]) addToStaging(ent.qualifier, gid);
+            });
+            renderOverlay();
+          };
+          commBar.appendChild(stageAutoBtn);
+          shelf.appendChild(commBar);
+        }
+
+        var track = document.createElement('div');
+        track.className = 'shelf-track';
+        enableDragPan(track);
+
+        if (!grp.items.length) {
+          var emptyMsg = document.createElement('div');
+          emptyMsg.style.cssText = 'color:#8b949e;font-size:0.86rem;padding:12px;';
+          emptyMsg.textContent = 'This Tab Group is empty. Use "Show in Tabs" or "Add to Tabs" on search results.';
+          track.appendChild(emptyMsg);
+        } else {
+          grp.items.forEach(function(item, itemIdx) {
+            var cardEl = buildOverlayCard(item, gid, itemIdx, analysis.tierLookup);
+            track.appendChild(cardEl);
+            if (focusedOverlayRepoId === item.id) {
+              setTimeout(function() { cardEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); }, 40);
+            }
+          });
+        }
+        shelf.appendChild(track);
+        canvas.appendChild(shelf);
+      });
+    }
+
+    function buildOverlayCard(item, groupId, itemIdx, tierLookup) {
+      var activeMap = getActiveQueryQualifiers().map;
+      var col = document.createElement('div');
+      col.className = 'comp-col' + (focusedOverlayRepoId === item.id ? ' focused-tab' : '');
+      col.style.flex = '0 0 ' + Math.round(920 * (overlayZoom / 100)) + 'px';
+      col.style.height = Math.round(74 * Math.max(0.65, overlayZoom / 100)) + 'vh';
+
+      /* Drag-and-Drop Reorder via Title Header */
+      var top = document.createElement('div');
+      top.className = 'comp-card-top';
+      top.draggable = true;
+      top.title = 'Drag header left/right to reorder tab within group';
+
+      top.addEventListener('dragstart', function(e) {
+        draggedCardState = { groupId: groupId, fromIdx: itemIdx };
+        col.style.opacity = '0.5';
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      top.addEventListener('dragend', function() {
+        col.style.opacity = '1';
+        draggedCardState = null;
+      });
+      col.addEventListener('dragover', function(e) {
+        if (draggedCardState && draggedCardState.groupId === groupId) {
+          e.preventDefault();
+          col.classList.add('drag-over');
+          e.dataTransfer.dropEffect = 'move';
+        }
+      });
+      col.addEventListener('dragleave', function() {
+        col.classList.remove('drag-over');
+      });
+      col.addEventListener('drop', function(e) {
+        col.classList.remove('drag-over');
+        if (!draggedCardState || draggedCardState.groupId !== groupId) return;
+        e.preventDefault();
+        var from = draggedCardState.fromIdx;
+        if (from === itemIdx) return;
+        var arr = tabGroups[groupId].items;
+        var moved = arr.splice(from, 1)[0];
+        arr.splice(itemIdx, 0, moved);
+        saveState();
+        renderOverlay();
+      });
+
+      var headLine = document.createElement('div');
+      headLine.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;';
+
+      var a = document.createElement('a');
+      a.href = item.html_url;
+      a.target = '_blank';
+      a.style.cssText = 'color:#58a6ff;font-weight:700;font-size:1.05rem;text-decoration:none;';
+      a.textContent = item.full_name;
+      headLine.appendChild(a);
+
+      var colBtns = document.createElement('div');
+      colBtns.style.cssText = 'display:flex;gap:5px;align-items:center;';
+      var grp = tabGroups[groupId];
+
+      var lBtn = document.createElement('button');
+      lBtn.className = 'btn-sec btn-xs';
+      lBtn.textContent = '←';
+      lBtn.disabled = itemIdx === 0;
+      lBtn.onclick = function() {
+        var tmp = grp.items[itemIdx - 1];
+        grp.items[itemIdx - 1] = item;
+        grp.items[itemIdx] = tmp;
+        saveState();
+        renderOverlay();
+      };
+
+      var rBtn = document.createElement('button');
+      rBtn.className = 'btn-sec btn-xs';
+      rBtn.textContent = '→';
+      rBtn.disabled = itemIdx === grp.items.length - 1;
+      rBtn.onclick = function() {
+        var tmp = grp.items[itemIdx + 1];
+        grp.items[itemIdx + 1] = item;
+        grp.items[itemIdx] = tmp;
+        saveState();
+        renderOverlay();
+      };
+
+      var rmBtn = document.createElement('button');
+      rmBtn.className = 'btn-sec btn-xs btn-danger';
+      rmBtn.textContent = '×';
+      rmBtn.title = 'Remove tab from group';
+      rmBtn.onclick = function() {
+        removeRepoFromGroup(tabGroups, groupId, item.id);
+        renderOverlay();
+      };
+
+      colBtns.appendChild(lBtn);
+      colBtns.appendChild(rBtn);
+      colBtns.appendChild(rmBtn);
+      headLine.appendChild(colBtns);
+      top.appendChild(headLine);
+
+      var desc = document.createElement('div');
+      desc.style.cssText = 'font-size:0.86rem;color:#c9d1d9;margin-top:5px;';
+      highlightTextToEl(desc, item.description || 'No description');
+      top.appendChild(desc);
+
+      var meta = document.createElement('div');
+      meta.className = 'meta';
+      var langQual = item.language && item.language !== 'N/A' ? 'language:' + item.language.toLowerCase() : '';
+      var langTier = langQual ? tierLookup[langQual] : null;
+      var langInQuery = langQual && !!activeMap[langQual];
+
+      meta.appendChild(document.createTextNode('★ ' + item.stargazers_count + ' | Pushed: ' + (item.pushed_at || item.updated_at || '').slice(0, 10) + ' | Lang: '));
+
+      if (langQual) {
+        var langPill = document.createElement('span');
+        var lCls = 'tag';
+        if (langTier === 'all') lCls += ' tag-all';
+        else if (langTier === 'most') lCls += ' tag-most';
+        else if (langTier === 'some') lCls += ' tag-some';
+        if (langInQuery) lCls += ' tag-query-match';
+        langPill.className = lCls;
+        langPill.style.margin = '0 4px';
+        langPill.textContent = item.language;
+        langPill.title = 'Click to stage ' + langQual;
+        langPill.onclick = function() {
+          pushUndo();
+		  addToStaging(langQual, groupId);
+          renderOverlay();
+        };
+        meta.appendChild(langPill);
+      } else {
+        meta.appendChild(document.createTextNode('N/A'));
+      }
+
+      if (item.foundFromQuery) {
+        meta.appendChild(document.createTextNode(' | Found via: ' + item.foundFromQuery));
+      }
+      top.appendChild(meta);
+
+      var tagRow = document.createElement('div');
+      tagRow.style.marginTop = '5px';
+      (item.topics || []).forEach(function(t) {
+        var qKey = 'topic:' + t;
+        var sp = document.createElement('span');
+        var tier = tierLookup[qKey];
+        var cls = 'tag';
+        if (tier === 'all') cls += ' tag-all';
+        else if (tier === 'most') cls += ' tag-most';
+        else if (tier === 'some') cls += ' tag-some';
+        if (activeMap[qKey.toLowerCase()]) cls += ' tag-query-match';
+        sp.className = cls;
+        sp.textContent = t;
+        sp.title = 'Click to stage topic:' + t;
+        sp.onclick = function() {
+          pushUndo();
+		  addToStaging(qKey, groupId);
+          renderOverlay();
+        };
+        tagRow.appendChild(sp);
+      });
+      top.appendChild(tagRow);
+      col.appendChild(top);
+
+      var body = document.createElement('div');
+      body.className = 'comp-readme';
+      if (readmeCache[item.id]) {
+        body.innerHTML = highlightHtmlString(readmeCache[item.id]);
+      } else {
+        body.textContent = 'Fetching README...';
+        fetchReadmeHtml(item).then(function(html) {
+          body.innerHTML = highlightHtmlString(html);
+        });
+      }
+      col.appendChild(body);
+      return col;
+    }
+
+    /* ---------------- BACKUP EXPORT & IMPORT ---------------- */
+    function exportBookmarksOnly() {
+      var payload = {
+        type: 'github-search-bookmarks',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        bookmarkGroups: bookmarkGroups
+      };
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'github-bookmarks-' + new Date().toISOString().slice(0, 10) + '.json';
+      a.click();
+    }
+
+    function getUniqueBookmarkGroupName(baseName) {
+      var existingNames = {};
+      Object.keys(bookmarkGroups).forEach(function(id) {
+        existingNames[bookmarkGroups[id].name.toLowerCase()] = true;
+      });
+      if (!existingNames[baseName.toLowerCase()]) return baseName;
+      var counter = 2;
+      while (existingNames[(baseName + ' (' + counter + ')').toLowerCase()]) counter++;
+      return baseName + ' (' + counter + ')';
+    }
+
+    function importBookmarksOnly(event) {
+      var file = event.target.files;
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var data = JSON.parse(e.target.result);
+          var incoming = data.bookmarkGroups || data;
+          var importedCount = 0;
+          pushUndo();
+          Object.keys(incoming).forEach(function(oldId, idx) {
+            var grp = incoming[oldId];
+            if (!grp || !Array.isArray(grp.items)) return;
+            var safeName = getUniqueBookmarkGroupName(grp.name || 'Imported Bookmarks');
+            var newId = 'bm_' + Date.now() + '_' + idx;
+            bookmarkGroups[newId] = {
+              id: newId,
+              name: safeName,
+              updatedAt: Date.now(),
+              items: grp.items.map(function(it) { return Object.assign({}, it); })
+            };
+            lastBmGroupId = newId;
+            importedCount++;
+          });
+          saveState();
+          renderSidebars();
+          renderRepos();
+          alert('Imported ' + importedCount + ' bookmark group(s) cleanly.');
+        } catch (err) {
+          alert('Invalid bookmarks JSON file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function exportBackup() {
+      var includeCache = document.getElementById('includeCacheChk').checked;
+      var payload = {
+        version: 2,
+        exportedAt: new Date().toISOString(),
+        queryTokens: queryTokens,
+        savedPresets: savedPresets,
+        savedSearches: savedSearches,
+        tabGroups: tabGroups,
+        tabGroupOrder: tabGroupOrder,
+        lastTabGroupId: lastTabGroupId,
+        activeTabGroupIds: activeTabGroupIds,
+        bookmarkGroups: bookmarkGroups,
+        bookmarkGroupOrder: bookmarkGroupOrder,
+        lastBookmarkGroupId: lastBookmarkGroupId,
+        triage: triage,
+        pinnedFindings: pinnedFindings,
+        readmeCache: includeCache ? readmeCache : {}
+      };
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'github-search-workspace-' + new Date().toISOString().slice(0, 10) + '.json';
+      a.click();
+    }
+
+    function importBackup(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var data = JSON.parse(e.target.result);
+          if (data.queryTokens) queryTokens = data.queryTokens;
+          if (data.savedPresets) savedPresets = data.savedPresets;
+          if (data.savedSearches) savedSearches = data.savedSearches;
+          if (data.tabGroups) tabGroups = data.tabGroups;
+          if (data.tabGroupOrder) tabGroupOrder = data.tabGroupOrder;
+          if (data.lastTabGroupId) lastTabGroupId = data.lastTabGroupId;
+          if (data.activeTabGroupIds) activeTabGroupIds = data.activeTabGroupIds;
+          if (data.bookmarkGroups) bookmarkGroups = data.bookmarkGroups;
+          if (data.bookmarkGroupOrder) bookmarkGroupOrder = data.bookmarkGroupOrder;
+          if (data.lastBookmarkGroupId) lastBookmarkGroupId = data.lastBookmarkGroupId;
+          if (data.triage) triage = Object.assign(triage, data.triage);
+          if (data.pinnedFindings) pinnedFindings = data.pinnedFindings;
+          if (data.readmeCache) readmeCache = Object.assign(readmeCache, data.readmeCache);
+          saveState();
+          renderChips();
+          renderPresets();
+          renderGroupsSidebars();
+          renderSavedSearches();
+          renderFindingsBar();
+          updateTopTabCount();
+          alert('Workspace backup imported successfully!');
+        } catch (err) {
+          alert('Invalid backup JSON file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+  </script>
+</body>
+</html>
