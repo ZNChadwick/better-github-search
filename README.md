@@ -40,7 +40,7 @@ GitHub's native web search falls short when researching ecosystems across multip
 3. *(Optional)* Paste a read-only GitHub Personal Access Token to raise GitHub's Search API rate limit from **10** to **30 requests/minute**.
 
 ## Architecture & Development Note
-Designed to be a zero-build, single-file HTML/CSS/JS application so anyone can run it offline or host it statically with zero dependencies. Designed, architected, and iteratively directed using AI-assisted code generation.
+Intended to be a zero-build, single-file HTML/CSS/JS application so anyone can run it offline or host it statically with zero dependencies. Designed, architected, and iteratively directed using AI-assisted code generation.
 
 ## License
 [MIT](LICENSE) 
