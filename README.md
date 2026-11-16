@@ -2,7 +2,7 @@
 
 A zero-dependency, single-file browser utility for GitHub repository discovery—combining a visual multi-select boolean query rail, live topic/language autocomplete, DNF multi-branch API expansion, and a side-by-side README comparison workspace.
 
-**[Launch Live Demo](https://znchadwick.github.io/better-github-search/)** · **[Download `index.html`](https://raw.githubusercontent.com/znchadwick/better-github-search/main/index.html)**
+**[Launch Live Demo](https://znchadwick.github.io/better-github-search/)**
 
 
 > **Scope Note:** Designed specifically for **repository discovery** (topics, descriptions, metadata, and READMEs). For fast regex or line-by-line source code search across public repositories, you may want to use **[grep.app](https://grep.app/)** or **[GitHub Code Search](https://github.com/search)**.
