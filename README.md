@@ -7,7 +7,7 @@ A zero-dependency, single-file browser utility for GitHub repository discoveryâ€
 
 > **Scope Note:** Designed specifically for **repository discovery** (topics, descriptions, metadata, and READMEs). For fast regex or line-by-line source code search across public repositories, you may want to use **[grep.app](https://grep.app/)** or **[GitHub Code Search](https://github.com/search)**.
 
-<img width="1608" height="1014" alt="Screenshot 2026-11-16 050900" src="https://github.com/user-attachments/assets/d1a84d0a-94d4-48f0-a9be-2e4db2c4ccde" />
+<img width="1594" height="1011" alt="Screenshot 2026-11-16 063546" src="https://github.com/user-attachments/assets/0014d193-6b56-4ca6-b74c-3c2dcb82a2ac" />
 
 ## Why This Exists
 GitHub's native web search falls short when researching ecosystems across multiple overlapping topics:
@@ -32,7 +32,7 @@ GitHub's native web search falls short when researching ecosystems across multip
 - **Triage & Privacy-First Local Storage**
   - Automatically flags repositories as `Seen`, `Hidden`, or `Updated` when new commits land after your last visit. All data and your optional GitHub Personal Access Token stay strictly in browser `localStorage` with full JSON backup/restore.
 
-<img width="1854" height="998" alt="Screenshot 2026-11-16 051219" src="https://github.com/user-attachments/assets/4f36cf8f-b8cc-461a-a758-077d5dcedf9d" />
+<img width="1856" height="1013" alt="Screenshot 2026-11-16 063244" src="https://github.com/user-attachments/assets/29aff39a-4640-4eac-83c2-6e53a71b1c9b" />
 
 ## Quick Start
 1. **Use Online:** Open the **[GitHub Pages Live Demo](https://znchadwick.github.io/better-github-search/)**.
