@@ -185,6 +185,11 @@
       z-index: 30;
       border-radius: 4px;
     }
+    .q-chip.q-type-topic { color: #79c0ff !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+    .q-chip.q-type-lang { color: #7ee787 !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+    .q-chip.q-type-range { color: #ffa657 !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+    .q-chip.q-type-flag { color: #ff9bce !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+    .q-chip.q-type-kw { color: #ffffff !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
     .ac-dropdown {
       position: absolute;
       left: 0;
@@ -1698,6 +1703,14 @@
           cls += ' neg';
         }
         if (selectedTokenIndices.indexOf(idx) !== -1) cls += ' is-selected';
+        if (!isOp) {
+          var bare = tok.charAt(0) === '-' ? tok.slice(1) : tok;
+          if (/^topic:/i.test(bare)) cls += ' q-type-topic';
+          else if (/^language:/i.test(bare)) cls += ' q-type-lang';
+          else if (/^(stars|pushed|created):/i.test(bare)) cls += ' q-type-range';
+          else if (/^(fork|in):/i.test(bare)) cls += ' q-type-flag';
+          else cls += ' q-type-kw';
+        }
         chip.className = cls;
         chip.draggable = true;
 
@@ -1709,7 +1722,6 @@
         } else if (!isOp && bMeta && bMeta.kind === 'inside' && tok.charAt(0) !== '-') {
           var inPal = NEST_PALETTE[(bMeta.depth + 1) % NEST_PALETTE.length];
           chip.style.borderColor = inPal.border;
-          chip.style.color = inPal.text;
           chip.style.background = inPal.bg;
         }
 
